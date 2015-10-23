@@ -33,8 +33,8 @@ class InvertedIndex:
                 for word in re.split("\W+", line):
                     word = word.lower()
                     if len(word) > 0:
-                        """ If word seen for first time, create empty inverted
-                        list for it. """
+                        """ If a word is seen for first time, create an empty
+                        inverted list for it. """
                         if word not in self.inverted_lists:
                             self.inverted_lists[word] = list()
                         self.inverted_lists[word].append(doc_id)
@@ -87,33 +87,37 @@ class InvertedIndex:
         for i in range(len(lists)):
             merged_list = self.merge(merged_list, lists[i])
 
-        list_of_pair = [[record_id, merged_list.count(record_id)]
-                        for record_id in sorted(set(merged_list))]
+        list_of_pairs = [[record_id, merged_list.count(record_id)]
+                         for record_id in sorted(set(merged_list))]
 
-        list_of_pairs = sorted(list_of_pair, key=lambda x: x[1], reverse=True)
+        list_of_pairs = sorted(list_of_pairs, key=lambda x: x[1], reverse=True)
 
         return list_of_pairs
 
+    def main(self):
+        """  """
+        if len(sys.argv) != 2:
+            print("Usage: python3 inverted_index.py <file>")
+            sys.exit()
+
+        file_name = sys.argv[1]
+        self.read_from_file(file_name)
+
+        # print(ii.inverted_lists)
+
+        while True:
+            query = raw_input('Enter the query: ')
+            if query == 'exit':
+                break
+
+            result = ii.process_query(query)
+
+            if any(result):
+                print(result[:3])
+            else:
+                print('No hits')
+
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python3 inverted_index.py <file>")
-        sys.exit()
-
-    file_name = sys.argv[1]
     ii = InvertedIndex()
-    ii.read_from_file(file_name)
-
-    print(ii.inverted_lists)
-
-    while True:
-        query = raw_input('Enter the query: ')
-        if query == 'exit':
-            break
-
-        result = ii.process_query(query)
-
-        if any(result):
-            print(result[:3])
-        else:
-            print('No hits')
+    ii.main()
