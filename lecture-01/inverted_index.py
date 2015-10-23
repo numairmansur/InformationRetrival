@@ -40,39 +40,33 @@ class InvertedIndex:
                         self.inverted_lists[word].append(doc_id)
 
     def merge(self, l1, l2):
-        """ Merges two given inverted lists """
+        """
+        Merges two given inverted lists
 
-        # Straightforward (dumb?) way
+        >>> ii = InvertedIndex()
+        >>> l1 = [1, 3, 3, 4, 6]
+        >>> l2 = [2, 3, 5, 7, 7]
+        >>> ii.merge(l1, l2)
+        [1, 2, 3, 3, 3, 4, 5, 6, 7, 7]
+        """
+
+        # The simpliest and naive implementation
         # return sorted(l1 + l2)
 
-        # Complicated (the right?) way
-
-        # l1 = [1, 3, 3, 4, 6]
-        # l2 = [2, 3, 5, 7, 7]
-        # l1 = [13, 57, 57, 114, 987]
-        # l2 = [5, 23, 23, 23, 57, 257]
-
         merged_list = list()
-        last_items = False
-        i = 0
-        j = 0
 
-        while i + j <= len(l1) + len(l2) - 2:
-            if l1[i] < l2[j] or last_items:
-                merged_list.append(l1[i])
-                i += 1
-            elif l1[i] == l2[j]:
-                merged_list.extend([l1[i], l2[j]])
-                i += 1
-                j += 1
+        while len(l1) + len(l2) > 0:
+            if len(l1) == 0:
+                merged_list.extend(l2)
+                l2 = list()
+            elif len(l2) == 0:
+                merged_list.extend(l1)
+                l1 = list()
             else:
-                merged_list.append(l2[j])
-                if j + 1 != len(l2):
-                    j += 1
-                    i, j = j, i
-                    l1, l2 = l2, l1
+                if l1[0] < l2[0]:
+                    merged_list.append(l1.pop(0))
                 else:
-                    last_items = True
+                    merged_list.append(l2.pop(0))
 
         return merged_list
 
@@ -82,28 +76,44 @@ class InvertedIndex:
         from the given query.
         """
         lists = list()
+        merged_list = list()
+
         for word in re.split("\W+", query):
             word = word.lower()
             if any(word):
                 if word in self.inverted_lists.keys():
                     lists.append(self.inverted_lists[word])
 
-        print()
+        for i in range(len(lists)):
+            merged_list = self.merge(merged_list, lists[i])
+
+        list_of_pair = [[record_id, merged_list.count(record_id)]
+                        for record_id in sorted(set(merged_list))]
+
+        list_of_pairs = sorted(list_of_pair, key=lambda x: x[1], reverse=True)
+
+        return list_of_pairs
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python3 inverted_index.py <file>")
         sys.exit()
+
     file_name = sys.argv[1]
     ii = InvertedIndex()
     ii.read_from_file(file_name)
 
     print(ii.inverted_lists)
 
-    # ii.merge(ii.inverted_lists.items()[0][1], ii.inverted_lists.items()[2][1])
+    while True:
+        query = raw_input('Enter the query: ')
+        if query == 'exit':
+            break
 
-    ii.process_query('The third docum')
+        result = ii.process_query(query)
 
-    # for word, inverted_list in ii.inverted_lists.items():
-    #     print("%s %d" % (word, len(inverted_list)))
+        if any(result):
+            print(result[:3])
+        else:
+            print('No hits')
