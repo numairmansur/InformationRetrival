@@ -106,7 +106,7 @@ class InvertedIndex:
         # print(ii.inverted_lists)
 
         while True:
-            query = raw_input('Enter the query: ')
+            query = raw_input('Enter the query (enter "exit" for quitting): ')
             if query == 'exit':
                 break
 
