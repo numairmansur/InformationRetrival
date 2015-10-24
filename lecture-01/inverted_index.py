@@ -121,4 +121,4 @@ class InvertedIndex:
 if __name__ == "__main__":
     ii = InvertedIndex()
     ii.main()
-    print ii.inverted_lists['cool']
+    
