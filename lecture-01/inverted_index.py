@@ -14,6 +14,7 @@ class InvertedIndex:
         """ Create an empty inverted index. """
 
         self.inverted_lists = dict()
+        self.records = dict()
 
     def read_from_file(self, file_name):
         """
@@ -30,6 +31,7 @@ class InvertedIndex:
             doc_id = 0
             for line in file:
                 doc_id += 1
+                self.records[doc_id] = line.replace('\n', '')
                 for word in re.split("\W+", line):
                     word = word.lower()
                     if len(word) > 0:
@@ -74,6 +76,11 @@ class InvertedIndex:
         """
         Computes the list of ids of all records containing at least one word
         from the given query.
+
+        >>> ii = InvertedIndex()
+        >>> file_name = ii.read_from_file('example.txt')
+        >>> ii.process_query('third docum')
+        [[3, 2], [1, 1], [2, 1]]
         """
         lists = list()
         merged_list = list()
@@ -82,7 +89,7 @@ class InvertedIndex:
             word = word.lower()
             if any(word):
                 if word in self.inverted_lists.keys():
-                    lists.append(self.inverted_lists[word])
+                    lists.append(list(self.inverted_lists[word]))
 
         for i in range(len(lists)):
             merged_list = self.merge(merged_list, lists[i])
@@ -94,26 +101,30 @@ class InvertedIndex:
 
         return list_of_pairs
 
+    def print_output(self, hits):
+        for hit in hits:
+            record_title = self.records[hit[0]].split('\t')[0]
+            print('%s, (# of keywords occurrences: %s)' %
+                  ('\033[92m' + record_title + '\033[0m', hit[1]))
+        print('\n')
+
     def main(self):
-        """  """
+        """ The main method """
         if len(sys.argv) != 2:
-            print("Usage: python3 inverted_index.py <file>")
+            print('Usage: python3 inverted_index.py <file>')
             sys.exit()
 
         file_name = sys.argv[1]
         self.read_from_file(file_name)
 
-        # print(ii.inverted_lists)
-
         while True:
-            query = raw_input('Enter the query (enter "exit" for quitting): ')
+            query = raw_input('Enter the query (type "exit" for quitting): ')
             if query == 'exit':
                 break
 
-            result = ii.process_query(query)
-
-            if any(result):
-                print(result[:3])
+            hits = ii.process_query(query)
+            if any(hits):
+                self.print_output(hits[:3])
             else:
                 print('No hits')
 
@@ -121,4 +132,3 @@ class InvertedIndex:
 if __name__ == "__main__":
     ii = InvertedIndex()
     ii.main()
-    
