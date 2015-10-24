@@ -33,6 +33,9 @@ class InvertedIndex:
                 for word in re.split("\W+", line):
                     word = word.lower()
                     if len(word) > 0:
+                    	if word == 'cool' and doc_id == 5327:
+                    		print "FOUND COOL !!! in DOC ID: " + str(doc_id)
+                    		print line
                         """ If a word is seen for first time, create an empty
                         inverted list for it. """
                         if word not in self.inverted_lists:
@@ -121,3 +124,4 @@ class InvertedIndex:
 if __name__ == "__main__":
     ii = InvertedIndex()
     ii.main()
+    print ii.inverted_lists['cool']
