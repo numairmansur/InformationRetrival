@@ -7,11 +7,12 @@ compile:
 	@echo "Nothing to compile for Python"
 
 test:
-	$(TEST_CMD) *.py
+	$(TEST_CMD) inverted_index.py
 
 checkstyle:
-	$(CHECKSTYLE_CMD) *.py
+	$(CHECKSTYLE_CMD) inverted_index.py
 
 clean:
-	rm -f *.pyc
+	rm -f inverted_index.pyc
 	rm -rf __pycache__
+	@echo "Cleaning done"
