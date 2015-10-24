@@ -118,7 +118,7 @@ class InvertedIndex:
         self.read_from_file(file_name)
 
         while True:
-            query = raw_input('Enter the query (type "exit" for quitting): ')
+            query = input('Enter the query (type "exit" for quitting): ')
             if query == 'exit':
                 break
 
