@@ -7,5 +7,6 @@ $cd ea85-mm559
 ''' Add the files ''' 
 
 $ svn add / name of the new file   OR $ svn update
+
 $ svn commit  
 
