@@ -56,19 +56,35 @@ class InvertedIndex:
         # return sorted(l1 + l2)
 
         merged_list = list()
+        l1.append('end')
+        l2.append('end')
+        i, j = 0, 0
 
-        while len(l1) + len(l2) > 0:
-            if len(l1) == 0:
-                merged_list.extend(l2)
-                l2 = list()
-            elif len(l2) == 0:
-                merged_list.extend(l1)
-                l1 = list()
+        while l1[i] != 'end' or l2[j] != 'end':
+            if l1[i] != 'end' and l2[j] != 'end' and l1[i] < l2[j]:
+                merged_list.append(l1[i])
+                i += 1
+
+            elif l1[i] != 'end' and l2[j] != 'end' and l1[i] > l2[j]:
+                merged_list.append(l2[j])
+                j += 1
+
+            elif l1[i] != 'end' and l2[j] != 'end' and l1[i] == l2[j]:
+                merged_list.append(l1[i])
+                merged_list.append(l2[j])
+                i += 1
+                j += 1
+
+            elif l1[i] == 'end':
+                merged_list.append(l2[j])
+                j += 1
+
+            elif l2[j] == 'end':
+                merged_list.append(l1[i])
+                i += 1
+
             else:
-                if l1[0] < l2[0]:
-                    merged_list.append(l1.pop(0))
-                else:
-                    merged_list.append(l2.pop(0))
+                print('Error while merging lists')
 
         return merged_list
 
@@ -104,7 +120,7 @@ class InvertedIndex:
     def print_output(self, hits):
         for hit in hits:
             record_title = self.records[hit[0]].split('\t')[0]
-            print('%s, (# of keywords occurrences: %s)' %
+            print('%s (# of keywords occurrences: %s)' %
                   ('\033[92m' + record_title + '\033[0m', hit[1]))
         print('\n')
 
