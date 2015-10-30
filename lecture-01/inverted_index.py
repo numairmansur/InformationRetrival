@@ -6,6 +6,13 @@ Hannah Bast <bast@cs.uni-freiburg.de>
 import re
 import sys
 
+from collections import Counter
+
+GREEN_CLR = '\033[32m'
+YELLOW_CLR = '\033[33m'
+PURPLE_CLR = '\033[35m'
+END_CLR = '\033[0m'
+
 
 class InvertedIndex:
     """ A simple inverted index, as explained in the lecture. """
@@ -27,7 +34,9 @@ class InvertedIndex:
         [('docum', [1, 2, 3]), ('first', [1]), ('second', [2]), ('third', [3])]
         """
 
-        with open(file_name) as file:
+        print('Loading...\n')
+
+        with open(file_name, 'r', encoding='utf-8') as file:
             doc_id = 0
             for line in file:
                 doc_id += 1
@@ -52,39 +61,21 @@ class InvertedIndex:
         [1, 2, 3, 3, 3, 4, 5, 6, 7, 7]
         """
 
-        # The simpliest and naive implementation
-        # return sorted(l1 + l2)
-
         merged_list = list()
-        l1.append('end')
-        l2.append('end')
         i, j = 0, 0
 
-        while l1[i] != 'end' or l2[j] != 'end':
-            if l1[i] != 'end' and l2[j] != 'end' and l1[i] < l2[j]:
+        while i < len(l1) and j < len(l2):
+            if l1[i] < l2[j]:
                 merged_list.append(l1[i])
                 i += 1
-
-            elif l1[i] != 'end' and l2[j] != 'end' and l1[i] > l2[j]:
-                merged_list.append(l2[j])
-                j += 1
-
-            elif l1[i] != 'end' and l2[j] != 'end' and l1[i] == l2[j]:
-                merged_list.append(l1[i])
-                merged_list.append(l2[j])
-                i += 1
-                j += 1
-
-            elif l1[i] == 'end':
-                merged_list.append(l2[j])
-                j += 1
-
-            elif l2[j] == 'end':
-                merged_list.append(l1[i])
-                i += 1
-
             else:
-                print('Error while merging lists')
+                merged_list.append(l2[j])
+                j += 1
+
+        if i < len(l1):
+            merged_list.extend(l1[i:])
+        if j < len(l2):
+            merged_list.extend(l2[j:])
 
         return merged_list
 
@@ -110,19 +101,31 @@ class InvertedIndex:
         for i in range(len(lists)):
             merged_list = self.merge(merged_list, lists[i])
 
-        list_of_pairs = [[record_id, merged_list.count(record_id)]
-                         for record_id in sorted(set(merged_list))]
-
-        list_of_pairs = sorted(list_of_pairs, key=lambda x: x[1], reverse=True)
+        list_of_pairs = Counter(merged_list).most_common()
 
         return list_of_pairs
 
-    def print_output(self, hits):
+    def print_output(self, hits, query):
         for hit in hits:
             record_title = self.records[hit[0]].split('\t')[0]
+
             print('%s (# of keywords occurrences: %s)' %
-                  ('\033[92m' + record_title + '\033[0m', hit[1]))
-        print('\n')
+                  (GREEN_CLR + record_title + END_CLR, hit[1]))
+
+            keywords = [word.lower() for word in re.split("\W+", query)]
+            description = self.records[hit[0]].split('\t')
+            description = description[0] if len(description) == 1 \
+                else description[1]
+
+            # Highlighting keywords
+            words = description.split(' ')
+            for word in words:
+                truncated_word = re.sub(r'[^\w]', '', word)
+                if truncated_word.lower() in keywords:
+                    wrapped_word = YELLOW_CLR + truncated_word + END_CLR
+                    words[words.index(word)] = \
+                        word.replace(truncated_word, wrapped_word)
+            print(' '.join(words), '\n')
 
     def main(self):
         """ The main method """
@@ -134,13 +137,17 @@ class InvertedIndex:
         self.read_from_file(file_name)
 
         while True:
-            query = input('Enter the query (type "exit" for quitting): ')
+            msg = PURPLE_CLR + \
+                '> Enter the query (type "exit" for quitting): ' + END_CLR
+            query = input(msg)
             if query == 'exit':
                 break
 
+            print('')
+
             hits = ii.process_query(query)
             if any(hits):
-                self.print_output(hits[:3])
+                self.print_output(hits[:3], query)
             else:
                 print('No hits')
 
