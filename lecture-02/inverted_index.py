@@ -34,8 +34,6 @@ class InvertedIndex:
         [('docum', [1, 2, 3]), ('first', [1]), ('second', [2]), ('third', [3])]
         """
 
-        print('Loading...\n')
-
         with open(file_name, 'r', encoding='utf-8') as file:
             doc_id = 0
             for line in file:
@@ -87,7 +85,7 @@ class InvertedIndex:
         >>> ii = InvertedIndex()
         >>> file_name = ii.read_from_file('example.txt')
         >>> ii.process_query('third docum')
-        [[3, 2], [1, 1], [2, 1]]
+        [(3, 2), (1, 1), (2, 1)]
         """
         lists = list()
         merged_list = list()
@@ -134,6 +132,7 @@ class InvertedIndex:
             sys.exit()
 
         file_name = sys.argv[1]
+        print('Loading...\n')
         self.read_from_file(file_name)
 
         while True:
