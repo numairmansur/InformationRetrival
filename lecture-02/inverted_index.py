@@ -148,14 +148,14 @@ class InvertedIndex:
             word = word.lower()
             if any(word):
                 if word in self.inverted_lists.keys():
-                    lists.append(list(self.inverted_lists[word]))
+                    # lists.append(list(self.inverted_lists[word]))
 
                     tmp = list()
                     for record_id, tf in Counter(self.inverted_lists[word]).items():
                         DL = self.record_lengths[record_id]
-                        # tmp.append([record_id, self.bm25_score(tf,
-                        #                 len(set(self.inverted_lists[word])), N, AVDL, DL)])
-                        tmp.append([record_id, tf])
+                        tmp.append([record_id, self.bm25_score(tf,
+                                        len(set(self.inverted_lists[word])), N, AVDL, DL)])
+                        # tmp.append([record_id, tf])
 
                     new_lists.append(sorted(tmp, key=lambda x: x[0]))
 
@@ -170,7 +170,7 @@ class InvertedIndex:
         # list_of_pairs = self.bm25(Counter(merged_list).most_common())
 
         # return list_of_pairs
-        return sorted(merged_list_new, key=lambda x: x[1])
+        return sorted(merged_list_new, key=lambda x: x[1], reverse=True)
 
     def print_output(self, hits, query):
         for hit in hits:
