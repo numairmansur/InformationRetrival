@@ -7,8 +7,6 @@ import re
 import sys
 from math import log
 
-from collections import Counter
-
 GREEN_CLR = '\033[32m'
 YELLOW_CLR = '\033[33m'
 PURPLE_CLR = '\033[35m'
@@ -33,7 +31,7 @@ class InvertedIndex:
         >>> ii = InvertedIndex()
         >>> ii.read_from_file("example.txt")
         >>> sorted(ii.inverted_lists.items())
-        [('docum', [1, 2, 3]), ('first', [1]), ('second', [2]), ('third', [3])]
+        [('doc', {1: 1, 2: 1, 3: 1}), ('first', {1: 1}), ('second', {2: 1})]
         """
 
         with open(file_name, 'r', encoding='utf-8') as file:
@@ -45,43 +43,18 @@ class InvertedIndex:
                 self.record_lengths[doc_id] = len(words)
                 for word in words:
                     word = word.lower()
-                    if len(word) > 0:
+                    if any(word):
                         """ If a word is seen for first time, create an empty
                         inverted list for it. """
                         if word not in self.inverted_lists:
-                            self.inverted_lists[word] = list()
-                        self.inverted_lists[word].append(doc_id)
+                            self.inverted_lists[word] = dict()
+
+                        if doc_id in self.inverted_lists[word].keys():
+                            self.inverted_lists[word][doc_id] += 1
+                        else:
+                            self.inverted_lists[word][doc_id] = 1
 
     def merge(self, l1, l2):
-        """
-        Merges two given inverted lists
-
-        >>> ii = InvertedIndex()
-        >>> l1 = [1, 3, 3, 4, 6]
-        >>> l2 = [2, 3, 5, 7, 7]
-        >>> ii.merge(l1, l2)
-        [1, 2, 3, 3, 3, 4, 5, 6, 7, 7]
-        """
-
-        merged_list = list()
-        i, j = 0, 0
-
-        while i < len(l1) and j < len(l2):
-            if l1[i] < l2[j]:
-                merged_list.append(l1[i])
-                i += 1
-            else:
-                merged_list.append(l2[j])
-                j += 1
-
-        if i < len(l1):
-            merged_list.extend(l1[i:])
-        if j < len(l2):
-            merged_list.extend(l2[j:])
-
-        return merged_list
-
-    def merge_new(self, l1, l2):
         merged_list = list()
         i, j = 0, 0
 
@@ -104,27 +77,11 @@ class InvertedIndex:
 
         return merged_list
 
-    def bm25(self, pairs):
-        result = list()
-        k = 1.75
-        b = 0.75
-        df = '?'
-        N = len(self.record_lengths)
-        AVDL = sum(self.record_lengths.values()) / float(N)
-
-        for pair in pairs:
-            DL = self.record_lengths[pair[0]]
-            tf_ = pair[1] * (k + 1) / (k * (1 - b + b * DL / AVDL) + pair[1])
-            result.append((pair[0], tf_))
-        result = sorted(result, key=lambda x: x[1], reverse=True)
-
-        return result
-
     def bm25_score(self, tf, df, N, AVDL, DL):
         k = 1.75
         b = 0.75
-
-        return tf * (k + 1) / (k * (1 - b + b * DL / AVDL) + tf) * log((N / df), 2)
+        return tf * (k + 1) / (k * (1 - b + b * DL / AVDL) + tf) * \
+            log((N / df), 2)
 
     def process_query(self, query):
         """
@@ -133,13 +90,11 @@ class InvertedIndex:
 
         >>> ii = InvertedIndex()
         >>> file_name = ii.read_from_file('example.txt')
-        >>> ii.process_query('third docum')
-        [(3, 2), (1, 1), (2, 1)]
+        >>> ii.process_query('first')
+        [[1, 1.4957286870076327]]
         """
         lists = list()
         merged_list = list()
-
-        new_lists = list()
 
         N = len(self.record_lengths)
         AVDL = sum(self.record_lengths.values()) / float(N)
@@ -148,29 +103,21 @@ class InvertedIndex:
             word = word.lower()
             if any(word):
                 if word in self.inverted_lists.keys():
-                    # lists.append(list(self.inverted_lists[word]))
 
-                    tmp = list()
-                    for record_id, tf in Counter(self.inverted_lists[word]).items():
+                    for record_id, tf in self.inverted_lists[word].items():
+                        df = len(self.inverted_lists[word])
                         DL = self.record_lengths[record_id]
-                        tmp.append([record_id, self.bm25_score(tf,
-                                        len(set(self.inverted_lists[word])), N, AVDL, DL)])
-                        # tmp.append([record_id, tf])
+                        self.inverted_lists[word][record_id] = \
+                            self.bm25_score(tf, df, N, AVDL, DL)
 
-                    new_lists.append(sorted(tmp, key=lambda x: x[0]))
+                    inv_list = [[x, self.inverted_lists[word][x]]
+                                for x in self.inverted_lists[word]]
+                    lists.append(sorted(inv_list, key=lambda x: x[0]))
 
-        # for i in range(len(lists)):
-        #     merged_list = self.merge(merged_list, lists[i])
+        for i in range(len(lists)):
+            merged_list = self.merge(merged_list, lists[i])
 
-        merged_list_new = list()
-        for i in range(len(new_lists)):
-            merged_list_new = self.merge_new(merged_list_new, new_lists[i])
-
-        # list_of_pairs = Counter(merged_list).most_common()
-        # list_of_pairs = self.bm25(Counter(merged_list).most_common())
-
-        # return list_of_pairs
-        return sorted(merged_list_new, key=lambda x: x[1], reverse=True)
+        return sorted(merged_list, key=lambda x: x[1], reverse=True)
 
     def print_output(self, hits, query):
         for hit in hits:
