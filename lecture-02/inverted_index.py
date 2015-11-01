@@ -22,6 +22,7 @@ class InvertedIndex:
 
         self.inverted_lists = dict()
         self.records = dict()
+        self.record_lengths = dict()
 
     def read_from_file(self, file_name):
         """
@@ -38,8 +39,10 @@ class InvertedIndex:
             doc_id = 0
             for line in file:
                 doc_id += 1
+                words = re.split("\W+", line)
                 self.records[doc_id] = line.replace('\n', '')
-                for word in re.split("\W+", line):
+                self.record_lengths[doc_id] = len(words)
+                for word in words:
                     word = word.lower()
                     if len(word) > 0:
                         """ If a word is seen for first time, create an empty
@@ -77,6 +80,21 @@ class InvertedIndex:
 
         return merged_list
 
+    def bm25(self, pairs):
+        result = list()
+        k = 1.75
+        b = 0.75
+        AVDL = sum(self.record_lengths.values()) / \
+            float(len(self.record_lengths))
+
+        for pair in pairs:
+            DL = self.record_lengths[pair[0]]
+            tf_ = pair[1] * (k + 1) / (k * (1 - b + b * DL / AVDL) + pair[1])
+            result.append((pair[0], tf_))
+        result = sorted(result, key=lambda x: x[1], reverse=True)
+
+        return result
+
     def process_query(self, query):
         """
         Computes the list of ids of all records containing at least one word
@@ -99,7 +117,8 @@ class InvertedIndex:
         for i in range(len(lists)):
             merged_list = self.merge(merged_list, lists[i])
 
-        list_of_pairs = Counter(merged_list).most_common()
+        # list_of_pairs = Counter(merged_list).most_common()
+        list_of_pairs = self.bm25(Counter(merged_list).most_common())
 
         return list_of_pairs
 
@@ -107,8 +126,7 @@ class InvertedIndex:
         for hit in hits:
             record_title = self.records[hit[0]].split('\t')[0]
 
-            print('%s (# of keywords occurrences: %s)' %
-                  (GREEN_CLR + record_title + END_CLR, hit[1]))
+            print(GREEN_CLR + record_title + END_CLR)
 
             keywords = [word.lower() for word in re.split("\W+", query)]
             description = self.records[hit[0]].split('\t')
