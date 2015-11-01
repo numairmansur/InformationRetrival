@@ -5,6 +5,7 @@ Hannah Bast <bast@cs.uni-freiburg.de>
 
 import re
 import sys
+from math import log
 
 from collections import Counter
 
@@ -80,12 +81,36 @@ class InvertedIndex:
 
         return merged_list
 
+    def merge_new(self, l1, l2):
+        merged_list = list()
+        i, j = 0, 0
+
+        while i < len(l1) and j < len(l2):
+            if l1[i][0] < l2[j][0]:
+                merged_list.append(l1[i])
+                i += 1
+            elif l1[i][0] == l2[j][0]:
+                merged_list.append([l1[i][0], l1[i][1] + l2[j][1]])
+                i += 1
+                j += 1
+            else:
+                merged_list.append(l2[j])
+                j += 1
+
+        if i < len(l1):
+            merged_list.extend(l1[i:])
+        if j < len(l2):
+            merged_list.extend(l2[j:])
+
+        return merged_list
+
     def bm25(self, pairs):
         result = list()
         k = 1.75
         b = 0.75
-        AVDL = sum(self.record_lengths.values()) / \
-            float(len(self.record_lengths))
+        df = '?'
+        N = len(self.record_lengths)
+        AVDL = sum(self.record_lengths.values()) / float(N)
 
         for pair in pairs:
             DL = self.record_lengths[pair[0]]
@@ -94,6 +119,12 @@ class InvertedIndex:
         result = sorted(result, key=lambda x: x[1], reverse=True)
 
         return result
+
+    def bm25_score(self, tf, df, N, AVDL, DL):
+        k = 1.75
+        b = 0.75
+
+        return tf * (k + 1) / (k * (1 - b + b * DL / AVDL) + tf) * log((N / df), 2)
 
     def process_query(self, query):
         """
@@ -108,19 +139,38 @@ class InvertedIndex:
         lists = list()
         merged_list = list()
 
+        new_lists = list()
+
+        N = len(self.record_lengths)
+        AVDL = sum(self.record_lengths.values()) / float(N)
+
         for word in re.split("\W+", query):
             word = word.lower()
             if any(word):
                 if word in self.inverted_lists.keys():
                     lists.append(list(self.inverted_lists[word]))
 
-        for i in range(len(lists)):
-            merged_list = self.merge(merged_list, lists[i])
+                    tmp = list()
+                    for record_id, tf in Counter(self.inverted_lists[word]).items():
+                        DL = self.record_lengths[record_id]
+                        # tmp.append([record_id, self.bm25_score(tf,
+                        #                 len(set(self.inverted_lists[word])), N, AVDL, DL)])
+                        tmp.append([record_id, tf])
+
+                    new_lists.append(sorted(tmp, key=lambda x: x[0]))
+
+        # for i in range(len(lists)):
+        #     merged_list = self.merge(merged_list, lists[i])
+
+        merged_list_new = list()
+        for i in range(len(new_lists)):
+            merged_list_new = self.merge_new(merged_list_new, new_lists[i])
 
         # list_of_pairs = Counter(merged_list).most_common()
-        list_of_pairs = self.bm25(Counter(merged_list).most_common())
+        # list_of_pairs = self.bm25(Counter(merged_list).most_common())
 
-        return list_of_pairs
+        # return list_of_pairs
+        return sorted(merged_list_new, key=lambda x: x[1])
 
     def print_output(self, hits, query):
         for hit in hits:
