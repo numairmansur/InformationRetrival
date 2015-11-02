@@ -13,11 +13,73 @@ PURPLE_CLR = '\033[35m'
 END_CLR = '\033[0m'
 
 
+class EvaluateBenchmark:
+    """ Class for evaluating a given benchmark. """
+
+    def __init__(self):
+        """
+        Create an empty dictionary of queries and their relevant movies ids.
+        """
+
+        self.benchmark_ids = dict()
+        self.pak = 0
+        self.par = 0
+
+    def precision_at_k(self, results_ids, relevant_ids, k):
+        """
+        Computes the P@k for a given result list and a given set of
+        relevant docs
+        """
+
+        counter = 0
+        results_ids = results_ids[:k]
+        for res_id in results_ids:
+            if res_id in relevant_ids:
+                counter += 1
+
+        pak = counter / k
+        par = counter / len(relevant_ids)
+
+        self.pak += pak
+        self.par += par
+
+        print('P@3: %s, P@R: %s' % (pak, par))
+
+    def average_precision(self, results_ids, relevant_ids):
+        """
+        Compute the AP (avergae precision) of a given result list and a
+        given set of relevant docs.
+        """
+        pass
+
+    def evaluate_benchmark(self, file_name):
+        """
+
+        """
+
+        with open(file_name, 'r', encoding='utf-8') as file:
+            for line in file:
+                splitted_line = line.replace('\n', '').split('\t')
+                self.benchmark_ids[splitted_line[0]] = \
+                    [int(x) for x in splitted_line[1].split(' ')]
+
+        ii = InvertedIndex()
+        ii.read_from_file('movies2.txt')
+
+        for query, relevant_ids in self.benchmark_ids.items():
+            results_ids = [x[0] for x in ii.process_query(query)]
+            print('query: ', query)
+            pak = self.precision_at_k(results_ids, relevant_ids, 3)
+
+        print('\nP@3: %s, P@R: %s' % (self.pak / 10, self.par / 10))
+
 class InvertedIndex:
     """ A simple inverted index, as explained in the lecture. """
 
     def __init__(self):
-        """ Create an empty inverted index. """
+        """
+        Create an empty inverted index and additional dicts.
+        """
 
         self.inverted_lists = dict()
         self.records = dict()
@@ -55,6 +117,15 @@ class InvertedIndex:
                             self.inverted_lists[word][doc_id] = 1
 
     def merge(self, l1, l2):
+        """
+        Merges two given inverted lists
+
+        >>> ii = InvertedIndex()
+        >>> l1 = [[1, 1], [3, 2], [4, 1], [6, 1]]
+        >>> l2 = [[2, 1], [3, 1], [5, 1], [7, 2]]
+        >>> ii.merge(l1, l2)
+        [[1, 1], [2, 1], [3, 3], [4, 1], [5, 1], [6, 1], [7, 2]]
+        """
         merged_list = list()
         i, j = 0, 0
 
@@ -79,7 +150,7 @@ class InvertedIndex:
 
     def bm25_score(self, tf, df, N, AVDL, DL):
         k = 1.75
-        b = 0.75
+        b = 0.0
         return tf * (k + 1) / (k * (1 - b + b * DL / AVDL) + tf) * \
             log((N / df), 2)
 
@@ -91,7 +162,7 @@ class InvertedIndex:
         >>> ii = InvertedIndex()
         >>> file_name = ii.read_from_file('example.txt')
         >>> ii.process_query('first')
-        [[1, 1.4957286870076327]]
+        [[1, 1.5849625007211563]]
         """
         lists = list()
         merged_list = list()
@@ -166,5 +237,8 @@ class InvertedIndex:
 
 
 if __name__ == "__main__":
-    ii = InvertedIndex()
-    ii.main()
+    eb = EvaluateBenchmark()
+    eb.evaluate_benchmark('movies-benchmark.txt')
+
+    # ii = InvertedIndex()
+    # ii.main()
