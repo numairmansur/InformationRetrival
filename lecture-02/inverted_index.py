@@ -120,16 +120,16 @@ class InvertedIndex:
 
     def print_output(self, hits, query):
         for hit in hits:
-            record_title = self.records[hit[0]].split('\t')[0]
+            record = self.records[hit[0]].split('\t')
+            title = record[0]
 
-            print(GREEN_CLR + record_title + END_CLR)
+            print(GREEN_CLR + title + END_CLR)
 
             keywords = [word.lower() for word in re.split("\W+", query)]
-            description = self.records[hit[0]].split('\t')
-            description = description[0] if len(description) == 1 \
-                else description[1]
+            description = record[0] if len(record) == 1 \
+                else record[1]
 
-            # Highlighting keywords
+            # Keywords highlighting
             words = description.split(' ')
             for word in words:
                 truncated_word = re.sub(r'[^\w]', '', word)
