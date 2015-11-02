@@ -103,7 +103,6 @@ class InvertedIndex:
             word = word.lower()
             if any(word):
                 if word in self.inverted_lists.keys():
-
                     for record_id, tf in self.inverted_lists[word].items():
                         df = len(self.inverted_lists[word])
                         DL = self.record_lengths[record_id]
