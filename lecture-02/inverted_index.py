@@ -11,6 +11,8 @@ GREEN_CLR = '\033[32m'
 YELLOW_CLR = '\033[33m'
 PURPLE_CLR = '\033[35m'
 END_CLR = '\033[0m'
+K = 1.25
+B = 0.25
 
 
 class EvaluateBenchmark:
@@ -18,43 +20,30 @@ class EvaluateBenchmark:
 
     def __init__(self):
         """
-        Create an empty dictionary of queries and their relevant movies ids.
+        Creates an empty dictionary of queries and their relevant movies ids,
+        a list of pair with a movies id and its relevance according to the
+        benchmark file and total sums for P@3, P@R and AP.
         """
 
         self.benchmark_ids = dict()
-        self.sum_pak = 0
+        self.res_relevance = list()
+        self.sum_pa3 = 0
         self.sum_par = 0
         self.sum_ap = 0
 
     def precision_at_k(self, results_ids, relevant_ids, k):
         """
-        Computes the P@k for a given result list and a given set of
-        relevant docs
+        Computes the P@k for the given result list and the given set of
+        relevant docs.
+
+        (Note: with our approach results_ids and relevant_ids are not needed as
+        they were used before to generate the results_relevance list.)
         """
-        pak_cnt = 0
-        par_cnt = 0
-
-        i = 1
-        for res_id in results_ids:
-            if res_id in relevant_ids:
-                if i <= k:
-                    pak_cnt += 1
-                if i <= len(relevant_ids):
-                    par_cnt += 1
-            i += 1
-
-        pak = pak_cnt / k
-        par = par_cnt / len(relevant_ids)
-
-        # self.pak += pak
-        # self.par += par
-
-        # print('P@3: %s, P@R: %s' % (pak, par))
-        return pak, par
+        return len([x for x in self.res_relevance[:k] if x[1] == 1]) / k
 
     def average_precision(self, results_ids, relevant_ids):
         """
-        Compute the AP (avergae precision) of a given result list and a
+        Computes the AP (average precision) of the given result list and the
         given set of relevant docs.
         """
         r_list = list()
@@ -65,14 +54,12 @@ class EvaluateBenchmark:
                 r_list.append(results_ids.index(res_id) + 1)
 
         for r in r_list:
-            sum_p += self.precision_at_k(results_ids, relevant_ids, r)[0]
+            sum_p += self.precision_at_k(None, None, r)
 
         return sum_p / len(r_list)
 
     def evaluate_benchmark(self, file_name):
-        """
-
-        """
+        """ Evaluates the given benchmark. """
 
         with open(file_name, 'r', encoding='utf-8') as file:
             for line in file:
@@ -89,27 +76,27 @@ class EvaluateBenchmark:
 
         for query, relevant_ids in self.benchmark_ids.items():
             results_ids = [x[0] for x in ii.process_query(query)]
-            # print('query: ', query)
 
-            # pak_par = self.precision_at_k(results_ids, relevant_ids, 3)
-            # self.sum_pak += pak_par[0]
-            # self.sum_par += pak_par[1]
+            self.res_relevance = [[res_id, 1 if res_id in relevant_ids else 0]
+                                  for res_id in results_ids]
 
+            self.sum_pa3 += self.precision_at_k(None, None, 3)
+            self.sum_par += self.precision_at_k(None, None, len(relevant_ids))
             self.sum_ap += self.average_precision(results_ids, relevant_ids)
 
-        print('\nMP@3: %s, MP@R: %s' % (self.sum_pak / 10, self.sum_par / 10))
-        print('MAP: %s' % (self.sum_ap / 10))
+        num = len(self.benchmark_ids)
+        print('\nK: %s, B: %s' % (K, B))
+        print('MP@3: %s \nMP@R: %s \nMAP: %s' %
+              (self.sum_pa3 / num, self.sum_par / num, self.sum_ap / num))
 
-        print('Time spent: %s s' % (time() - st))
+        print('\nTime spent: %s s' % (time() - st))
 
 
 class InvertedIndex:
-    """ A simple inverted index, as explained in the lecture. """
+    """ A simple inverted index as explained on the lecture. """
 
     def __init__(self):
-        """
-        Create an empty inverted index and additional dicts.
-        """
+        """ Creates an empty inverted index and additional dicts. """
 
         self.inverted_lists = dict()
         self.records = dict()
@@ -117,8 +104,8 @@ class InvertedIndex:
 
     def read_from_file(self, file_name):
         """
-        Construct inverted index from given file. The format is one record per
-        line.
+        Constructs the inverted index from the given file. The format is: one
+        record per line.
 
         >>> ii = InvertedIndex()
         >>> ii.read_from_file("example.txt")
@@ -179,9 +166,7 @@ class InvertedIndex:
         return merged_list
 
     def bm25_score(self, tf, df, N, AVDL, DL):
-        k = 1.75
-        b = 0.0
-        return tf * (k + 1) / (k * (1 - b + b * DL / AVDL) + tf) * \
+        return tf * (K + 1) / (K * (1 - B + B * DL / AVDL) + tf) * \
             log((N / df), 2)
 
     def process_query(self, query):
@@ -241,7 +226,7 @@ class InvertedIndex:
             print(' '.join(words), '\n')
 
     def main(self):
-        """ The main method """
+        """ The main method. """
         if len(sys.argv) != 2:
             print('Usage: python3 inverted_index.py <file>')
             sys.exit()
