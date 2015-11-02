@@ -24,21 +24,27 @@ class EvaluateBenchmark:
         self.benchmark_ids = dict()
         self.pak = 0
         self.par = 0
+        self.map = 0
 
     def precision_at_k(self, results_ids, relevant_ids, k):
         """
         Computes the P@k for a given result list and a given set of
         relevant docs
         """
+        pak_cnt = 0
+        par_cnt = 0
 
-        counter = 0
-        results_ids = results_ids[:k]
+        i = 1
         for res_id in results_ids:
             if res_id in relevant_ids:
-                counter += 1
+                if i <= k:
+                    pak_cnt += 1
+                if i <= len(relevant_ids):
+                    par_cnt += 1
+            i += 1
 
-        pak = counter / k
-        par = counter / len(relevant_ids)
+        pak = pak_cnt / k
+        par = par_cnt / len(relevant_ids)
 
         self.pak += pak
         self.par += par
@@ -50,7 +56,13 @@ class EvaluateBenchmark:
         Compute the AP (avergae precision) of a given result list and a
         given set of relevant docs.
         """
-        pass
+        r_list = list()
+
+        for res_id in results_ids:
+            if res_id in relevant_ids:
+                r_list.append(results_ids.index(res_id) + 1)
+
+        print('!')
 
     def evaluate_benchmark(self, file_name):
         """
@@ -69,9 +81,11 @@ class EvaluateBenchmark:
         for query, relevant_ids in self.benchmark_ids.items():
             results_ids = [x[0] for x in ii.process_query(query)]
             print('query: ', query)
-            pak = self.precision_at_k(results_ids, relevant_ids, 3)
+            self.precision_at_k(results_ids, relevant_ids, 3)
+            # self.average_precision(results_ids, relevant_ids)
 
         print('\nP@3: %s, P@R: %s' % (self.pak / 10, self.par / 10))
+        print('MAP: %s' % (self.map / 10))
 
 class InvertedIndex:
     """ A simple inverted index, as explained in the lecture. """
