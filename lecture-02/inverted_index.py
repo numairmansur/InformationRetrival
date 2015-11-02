@@ -22,9 +22,9 @@ class EvaluateBenchmark:
         """
 
         self.benchmark_ids = dict()
-        self.pak = 0
-        self.par = 0
-        self.map = 0
+        self.sum_pak = 0
+        self.sum_par = 0
+        self.sum_ap = 0
 
     def precision_at_k(self, results_ids, relevant_ids, k):
         """
@@ -46,10 +46,11 @@ class EvaluateBenchmark:
         pak = pak_cnt / k
         par = par_cnt / len(relevant_ids)
 
-        self.pak += pak
-        self.par += par
+        # self.pak += pak
+        # self.par += par
 
-        print('P@3: %s, P@R: %s' % (pak, par))
+        # print('P@3: %s, P@R: %s' % (pak, par))
+        return pak, par
 
     def average_precision(self, results_ids, relevant_ids):
         """
@@ -57,12 +58,16 @@ class EvaluateBenchmark:
         given set of relevant docs.
         """
         r_list = list()
+        sum_p = 0
 
         for res_id in results_ids:
             if res_id in relevant_ids:
                 r_list.append(results_ids.index(res_id) + 1)
 
-        print('!')
+        for r in r_list:
+            sum_p += self.precision_at_k(results_ids, relevant_ids, r)[0]
+
+        return sum_p / len(r_list)
 
     def evaluate_benchmark(self, file_name):
         """
@@ -78,14 +83,25 @@ class EvaluateBenchmark:
         ii = InvertedIndex()
         ii.read_from_file('movies2.txt')
 
+        from time import time
+        print('Calculating...')
+        st = time()
+
         for query, relevant_ids in self.benchmark_ids.items():
             results_ids = [x[0] for x in ii.process_query(query)]
-            print('query: ', query)
-            self.precision_at_k(results_ids, relevant_ids, 3)
-            # self.average_precision(results_ids, relevant_ids)
+            # print('query: ', query)
 
-        print('\nP@3: %s, P@R: %s' % (self.pak / 10, self.par / 10))
-        print('MAP: %s' % (self.map / 10))
+            # pak_par = self.precision_at_k(results_ids, relevant_ids, 3)
+            # self.sum_pak += pak_par[0]
+            # self.sum_par += pak_par[1]
+
+            self.sum_ap += self.average_precision(results_ids, relevant_ids)
+
+        print('\nMP@3: %s, MP@R: %s' % (self.sum_pak / 10, self.sum_par / 10))
+        print('MAP: %s' % (self.sum_ap / 10))
+
+        print('Time spent: %s s' % (time() - st))
+
 
 class InvertedIndex:
     """ A simple inverted index, as explained in the lecture. """
