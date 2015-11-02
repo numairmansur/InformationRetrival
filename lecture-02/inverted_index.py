@@ -1,16 +1,22 @@
 """
 Copyright 2015 University of Freiburg
 Hannah Bast <bast@cs.uni-freiburg.de>
+Evgeny Anatskiy <evgeny.anatskiy@jupiter.uni-freiburg.de>
+Numair Mansur <>
 """
 
 import re
 import sys
 from math import log
+from time import time
+
 
 GREEN_CLR = '\033[32m'
 YELLOW_CLR = '\033[33m'
 PURPLE_CLR = '\033[35m'
 END_CLR = '\033[0m'
+
+# BM25 parameters
 K = 1.25
 B = 0.25
 
@@ -18,7 +24,7 @@ B = 0.25
 class EvaluateBenchmark:
     """ Class for evaluating a given benchmark. """
 
-    def __init__(self):
+    def __init__(self, inv_lists):
         """
         Creates an empty dictionary of queries and their relevant movies ids,
         a list of pair with a movies id and its relevance according to the
@@ -27,6 +33,7 @@ class EvaluateBenchmark:
 
         self.benchmark_ids = dict()
         self.res_relevance = list()
+        self.ii = inv_lists
         self.sum_pa3 = 0
         self.sum_par = 0
         self.sum_ap = 0
@@ -45,13 +52,14 @@ class EvaluateBenchmark:
         """
         Computes the AP (average precision) of the given result list and the
         given set of relevant docs.
+
+        (Note: with our approach relevant_ids list is not needed as it was used
+        before to generate the results_relevance list.)
         """
-        r_list = list()
         sum_p = 0
 
-        for res_id in results_ids:
-            if res_id in relevant_ids:
-                r_list.append(results_ids.index(res_id) + 1)
+        r_list = [results_ids.index(x[0]) + 1
+                  for x in self.res_relevance if x[1] == 1]
 
         for r in r_list:
             sum_p += self.precision_at_k(None, None, r)
@@ -67,29 +75,26 @@ class EvaluateBenchmark:
                 self.benchmark_ids[splitted_line[0]] = \
                     [int(x) for x in splitted_line[1].split(' ')]
 
-        ii = InvertedIndex()
-        ii.read_from_file('movies2.txt')
-
-        from time import time
         print('Calculating...')
         st = time()
 
         for query, relevant_ids in self.benchmark_ids.items():
-            results_ids = [x[0] for x in ii.process_query(query)]
+            results_ids = [x[0] for x in self.ii.process_query(query)]
 
             self.res_relevance = [[res_id, 1 if res_id in relevant_ids else 0]
                                   for res_id in results_ids]
 
             self.sum_pa3 += self.precision_at_k(None, None, 3)
             self.sum_par += self.precision_at_k(None, None, len(relevant_ids))
-            self.sum_ap += self.average_precision(results_ids, relevant_ids)
+            self.sum_ap += self.average_precision(results_ids, None)
 
         num = len(self.benchmark_ids)
-        print('\nK: %s, B: %s' % (K, B))
-        print('MP@3: %s \nMP@R: %s \nMAP: %s' %
-              (self.sum_pa3 / num, self.sum_par / num, self.sum_ap / num))
-
-        print('\nTime spent: %s s' % (time() - st))
+        print('\nMP@3: %s, MP@R: %s, MAP: %s' %
+              (round(self.sum_pa3 / num, 2),
+               round(self.sum_par / num, 2),
+               round(self.sum_ap / num, 2)))
+        print('K = %s, B = %s' % (K, B))
+        print('\nCalculation time: %s s' % (round(time() - st, 2)))
 
 
 class InvertedIndex:
@@ -177,7 +182,7 @@ class InvertedIndex:
         >>> ii = InvertedIndex()
         >>> file_name = ii.read_from_file('example.txt')
         >>> ii.process_query('first')
-        [[1, 1.5849625007211563]]
+        [[1, 1.5579153590706245]]
         """
         lists = list()
         merged_list = list()
@@ -227,33 +232,40 @@ class InvertedIndex:
 
     def main(self):
         """ The main method. """
-        if len(sys.argv) != 2:
-            print('Usage: python3 inverted_index.py <file>')
+        msg = 'Usage: \n\tpython3 inverted_index.py <file>' + \
+              '\n\tpython3 inverted_index.py <file> --benchmark ' + \
+              '<benchmark_file>'
+
+        if len(sys.argv) < 2 or \
+                (len(sys.argv) == 3 and sys.argv[2] == '--benchmark') or \
+                (len(sys.argv) == 4 and sys.argv[2] != '--benchmark'):
+            print(msg)
             sys.exit()
 
         file_name = sys.argv[1]
         print('Loading...\n')
         self.read_from_file(file_name)
 
-        while True:
-            msg = PURPLE_CLR + \
-                '> Enter the query (type "exit" for quitting): ' + END_CLR
-            query = input(msg)
-            if query == 'exit':
-                break
+        if len(sys.argv) > 3 and sys.argv[2] == '--benchmark':
+            eb = EvaluateBenchmark(self)
+            eb.evaluate_benchmark(sys.argv[3])
+        else:
+            while True:
+                msg = PURPLE_CLR + \
+                    '> Enter the query (type "exit" for quitting): ' + END_CLR
+                query = input(msg)
+                if query == 'exit':
+                    break
 
-            print('')
+                print('')
 
-            hits = ii.process_query(query)
-            if any(hits):
-                self.print_output(hits[:3], query)
-            else:
-                print('No hits')
+                hits = ii.process_query(query)
+                if any(hits):
+                    self.print_output(hits[:3], query)
+                else:
+                    print('No hits')
 
 
 if __name__ == "__main__":
-    eb = EvaluateBenchmark()
-    eb.evaluate_benchmark('movies-benchmark.txt')
-
-    # ii = InvertedIndex()
-    # ii.main()
+    ii = InvertedIndex()
+    ii.main()
