@@ -17,8 +17,11 @@ PURPLE_CLR = '\033[35m'
 END_CLR = '\033[0m'
 
 # BM25 parameters
-K = 1.25
-B = 0.25
+# K = 1.25
+# B = 0.25
+
+K = 0.75
+B = 0.0
 
 
 class EvaluateBenchmark:
@@ -52,19 +55,21 @@ class EvaluateBenchmark:
         """
         Computes the AP (average precision) of the given result list and the
         given set of relevant docs.
-
-        (Note: with our approach relevant_ids list is not needed as it was used
-        before to generate the results_relevance list.)
         """
         sum_p = 0
 
         r_list = [results_ids.index(x[0]) + 1
                   for x in self.res_relevance if x[1] == 1]
 
+        # Taking into the consideration the note below on the Slide 22
+        # (Lecture 2): "for docs not in the result list take P@Ri = 0"
+        r_list_length = len(r_list)
+        r_list_length += len(relevant_ids) - r_list_length
+
         for r in r_list:
             sum_p += self.precision_at_k(None, None, r)
 
-        return sum_p / len(r_list)
+        return sum_p / r_list_length
 
     def evaluate_benchmark(self, file_name):
         """ Evaluates the given benchmark. """
@@ -86,7 +91,7 @@ class EvaluateBenchmark:
 
             self.sum_pa3 += self.precision_at_k(None, None, 3)
             self.sum_par += self.precision_at_k(None, None, len(relevant_ids))
-            self.sum_ap += self.average_precision(results_ids, None)
+            self.sum_ap += self.average_precision(results_ids, relevant_ids)
 
         num = len(self.benchmark_ids)
         print('\nMP@3: %s, MP@R: %s, MAP: %s' %
