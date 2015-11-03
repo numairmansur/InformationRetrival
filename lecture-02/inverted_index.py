@@ -2,7 +2,7 @@
 Copyright 2015 University of Freiburg
 Hannah Bast <bast@cs.uni-freiburg.de>
 Evgeny Anatskiy <evgeny.anatskiy@jupiter.uni-freiburg.de>
-Numair Mansur <>
+Numair Mansur <numair.mansur@gmail.com>
 """
 
 import re
