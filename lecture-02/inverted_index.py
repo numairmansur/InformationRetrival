@@ -184,7 +184,7 @@ class InvertedIndex:
         >>> ii = InvertedIndex()
         >>> file_name = ii.read_from_file('example.txt')
         >>> ii.process_query('first')
-        [[1, 1.5579153590706245]]
+        [[1, 1.5849625007211563]]
         """
         lists = list()
         merged_list = list()
