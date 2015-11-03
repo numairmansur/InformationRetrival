@@ -1,0 +1,7 @@
+It took approximately 12 hours to accomplish this exercise sheet. The most difficult and time-consuming part of the exercise was the program performance.
+
+Firstly, we had problems with applying BM25 formula on hundreds of thousands of elements (later we found a good approach using caching in the preprocessing phase while reading the movies.txt file). Then we got stuck with calculating P@3, P@R and AP. But again, found the way out.
+
+Unfortunately, we couldn't take movies popularity into the consideration as we don't know what to do and how to apply it to the resulting list with BM25 scores.
+
+The exercise itself seems to be harder than the previous one.
