@@ -17,9 +17,6 @@ PURPLE_CLR = '\033[35m'
 END_CLR = '\033[0m'
 
 # BM25 parameters
-# K = 1.25
-# B = 0.25
-
 K = 0.75
 B = 0.0
 
