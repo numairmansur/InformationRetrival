@@ -79,7 +79,6 @@ class EvaluateBenchmark:
                 splitted_line = line.replace('\n', '').split('\t')
                 self.benchmark_ids[splitted_line[0]] = \
                     [int(x) for x in splitted_line[1].split(' ')]
-
         print('Calculating...')
         st = time()
 
@@ -108,9 +107,9 @@ class InvertedIndex:
     def __init__(self):
         """ Creates an empty inverted index and additional dicts. """
 
-        self.inverted_lists = dict()
-        self.records = dict()
-        self.record_lengths = dict()
+        self.inverted_lists = dict() # dict of inverted indexees
+        self.records = dict() #Saving all the records in the dict
+        self.record_lengths = dict() #Length of each record
 
     def read_from_file(self, file_name):
         """
@@ -138,10 +137,13 @@ class InvertedIndex:
                         if word not in self.inverted_lists:
                             self.inverted_lists[word] = dict()
 
-                        if doc_id in self.inverted_lists[word].keys():
+                        if doc_id in self.inverted_lists[word].keys(): #Counts the occurence of each word in each document
                             self.inverted_lists[word][doc_id] += 1
                         else:
                             self.inverted_lists[word][doc_id] = 1
+
+
+
 
     def merge(self, l1, l2):
         """
@@ -192,32 +194,45 @@ class InvertedIndex:
         lists = list()
         merged_list = list()
 
-        N = len(self.record_lengths)
-        AVDL = sum(self.record_lengths.values()) / float(N)
-
+        N = len(self.record_lengths) # Length of the total number of documents
+        AVDL = sum(self.record_lengths.values()) / float(N) # Number of words in each document divided by the total number of documents (Average)
         for word in re.split("\W+", query):
             word = word.lower()
             if any(word):
                 if word in self.inverted_lists.keys():
-                    for record_id, tf in self.inverted_lists[word].items():
-                        df = len(self.inverted_lists[word])
-                        DL = self.record_lengths[record_id]
+                    for record_id, tf in self.inverted_lists[word].items(): # tf tells you how many times a word appeard in a document
+                        df = len(self.inverted_lists[word]) # df tells you how many documents contain a word
+                        DL = self.record_lengths[record_id] # Length of a document
                         self.inverted_lists[word][record_id] = \
-                            self.bm25_score(tf, df, N, AVDL, DL)
-
+                            self.bm25_score(tf, df, N, AVDL, DL) #Chaning the number of occurences of a word in each document by its relevance score
                     inv_list = [[x, self.inverted_lists[word][x]]
                                 for x in self.inverted_lists[word]]
                     lists.append(sorted(inv_list, key=lambda x: x[0]))
 
         for i in range(len(lists)):
             merged_list = self.merge(merged_list, lists[i])
-
         return sorted(merged_list, key=lambda x: x[1], reverse=True)
 
     def print_output(self, hits, query):
         for hit in hits:
             record = self.records[hit[0]].split('\t')
             title = record[0]
+
+
+            #BOOSTING THE RESULTS - - - - - -- - - - 
+            description = record[1].split(' ')
+            word_list = list()
+            for word in description:
+            	word = word.lower()
+            	if self.inverted_lists.get(word) is not None:
+            		keys = list()
+            		for key in self.inverted_lists[word]:
+            			keys.append(key)
+            		listt = [word,int(sum(x for x in [self.inverted_lists[word][key] for key in keys]))]
+            		word_list.append(listt)
+            print(sorted(word_list, key=lambda x: x[1], reverse= False))
+			#BOOSTING ENDED  - - - - -
+
 
             print(GREEN_CLR + title + END_CLR)
 
@@ -240,16 +255,16 @@ class InvertedIndex:
         msg = 'Usage: \n\tpython3 inverted_index.py <file>' + \
               '\n\tpython3 inverted_index.py <file> --benchmark ' + \
               '<benchmark_file>'
-
+        # Checking for arguments
         if len(sys.argv) < 2 or \
                 (len(sys.argv) == 3 and sys.argv[2] == '--benchmark') or \
                 (len(sys.argv) == 4 and sys.argv[2] != '--benchmark'):
             print(msg)
             sys.exit()
 
-        file_name = sys.argv[1]
+        file_name = sys.argv[1] # File name of the movies file
         print('Loading...\n')
-        self.read_from_file(file_name)
+        self.read_from_file(file_name) # Read the file
 
         if len(sys.argv) > 3 and sys.argv[2] == '--benchmark':
             eb = EvaluateBenchmark(self)
@@ -265,8 +280,9 @@ class InvertedIndex:
                 print('')
 
                 hits = ii.process_query(query)
+                print (hits[:3])
                 if any(hits):
-                    self.print_output(hits[:3], query)
+                    self.print_output(hits[:1], query)
                 else:
                     print('No hits')
 
