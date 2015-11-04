@@ -2,6 +2,9 @@
 .idea/
 
 *.pyc
-*.jar
 
 env/
+bin/
+
+# Lecture 3
+ListIntersectionMain.jar

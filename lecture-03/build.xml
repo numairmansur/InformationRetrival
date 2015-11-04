@@ -1,20 +1,20 @@
 <project default="all">
-    <!-- You can change properties according to your project layout. 
-        However, this default is recommended and 
+    <!-- You can change properties according to your project layout.
+        However, this default is recommended and
         makes your tutor's life a lot easier. -->
     <property name="Main-class" value="ListIntersectionMain" />
     <property name="jar-name" value="${Main-class}" />
     <property name="src-dir" location="." />
     <property name="bin-dir" location="./bin" />
     <property name="dist-dir" location="./" />
-    <property name="junit-jar" location="./junit-4.9b2.jar" />
-    <property name="checkstyle-jar" location="./checkstyle-5.6-all.jar" />
-    <property name="checkstyle-config" location="./checkstyle_config.xml" />
-    
+    <property name="junit-jar" location="lib/junit-4.9b2.jar" />
+    <property name="checkstyle-jar" location="lib/checkstyle-5.6-all.jar" />
+    <property name="checkstyle-config" location="lib/checkstyle_config.xml" />
+
     <!-- If you use third party libraries, you'll have to modify the classpath. -->
     <path id="classpath.base">
     </path>
-    
+
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
     <!--  Ideally, you'll never have to touch anything below.  -->
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -26,7 +26,7 @@
         <pathelement location="${bin-dir}" />
         <path refid="classpath.base" />
     </path>
-    
+
     <path id="classpath.run">
         <pathelement location="${bin-dir}" />
         <path refid="classpath.base" />
@@ -51,11 +51,11 @@
         </javac>
     </target>
 
-    <!-- Please note: This is no ideal "jar" target since it does not exclude 
-         test-classes. It could easily be done by splitting normal source 
+    <!-- Please note: This is no ideal "jar" target since it does not exclude
+         test-classes. It could easily be done by splitting normal source
          and test source folders or by using naming conventions and "exclude".
          But we want to avoid  any trouble for you that would be caused
-         by multiple source folders or if a non-test-class ends on "...Test" --> 
+         by multiple source folders or if a non-test-class ends on "...Test" -->
     <target name="jar" depends="compile">
         <jar destfile="${dist-dir}/${jar-name}.jar" basedir="${bin-dir}">
             <manifest>
@@ -70,8 +70,8 @@
             <fileset dir="${dist-dir}" includes="${jar-name}.jar" />
         </delete>
         <delete dir="${bin-dir}" />
-    </target>   
-    
+    </target>
+
     <target name="test" depends="compile">
         <junit>
             <classpath refid="classpath.test" />

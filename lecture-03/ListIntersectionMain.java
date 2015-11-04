@@ -17,6 +17,7 @@ public class ListIntersectionMain {
     // Read lists.
     PostingList lists[] = new PostingList[m];
     System.out.println();
+
     for (int i = 0; i < m; i++) {
       System.out.print("Reading list \"" + listNames[i] + "\" ... ");
       System.out.flush();

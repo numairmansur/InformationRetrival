@@ -21,13 +21,15 @@ public class ListIntersection {
     BufferedReader bufferedReader = new BufferedReader(fileReader);
     ArrayList<Integer> ids = new ArrayList<Integer>();
     ArrayList<Integer> scores = new ArrayList<Integer>();
+
     while (true) {
       String line = bufferedReader.readLine();
       if (line == null) { break; }
-      String[] parts = line.split("\\W+"); 
+      String[] parts = line.split("\\W+");
       ids.add(Integer.parseInt(parts[0]));
       scores.add(Integer.parseInt(parts[1]));
     }
+
     return new PostingList(ids, scores, numRepeats, offset);
   }
 
@@ -50,10 +52,12 @@ public class ListIntersection {
     int n = list.ids.length;
     int ids[] = new int[n];
     int scores[] = new int[n];
+
     for (int i = 0; i < n; i++) {
       ids[i] = list.ids[i];
       scores[i] = list.scores[i];
     }
+
     for (int run = 0; run < 3; run++) {
       System.out.print("Computing checksum for \"" + name
           + "\" with native arrays ... ");
@@ -77,6 +81,7 @@ public class ListIntersection {
     int j = 0;
     ArrayList<Integer> ids = new ArrayList<Integer>();
     ArrayList<Integer> scores = new ArrayList<Integer>();
+
     while (i < n1 && j < n2) {
       while (i < n1 && list1.ids[i] < list2.ids[j]) { i++; }
       if (i == n1) { break; }
@@ -101,6 +106,7 @@ public class ListIntersection {
     //     j++;
     //   }
     // }
+
     return new PostingList(ids, scores, 1, 0);
   }
 }
