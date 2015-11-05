@@ -93,26 +93,13 @@ public class ListIntersection {
                 j++;
             }
         }
-        // while (i < n1 && j < n2) {
-        //   if (list1.ids[i] < list2.ids[j]) { i++; }
-        //   if (i == n1) { break; }
-        //   if (list2.ids[j] < list1.ids[i]) { j++; }
-        //   if (j == n2) { break; }
-        //   if (list1.ids[i] == list2.ids[j]) {
-        //     ids.add(list1.ids[i]);
-        //     scores.add(list1.scores[i] + list2.scores[j]);
-        //     i++;
-        //     j++;
-        //   }
-        // }
 
         return new PostingList(ids, scores, 1, 0);
     }
 
     public static int binarySearch(int[] array, int value, int min, int max) {
         while (min <= max) {
-            int mid = (max - min) / 2;
-
+            int mid = (min + max) / 2;
             if (array[mid] == value) {
                 return mid;
             } else if (array[mid] < value) {
@@ -124,11 +111,17 @@ public class ListIntersection {
         return -1;
     }
 
-    PostingList intersectBinarySearch(PostingList list1, PostingList list) {
+    PostingList intersectBinarySearch(PostingList listA, PostingList listB) {
         ArrayList<Integer> ids = new ArrayList<Integer>();
         ArrayList<Integer> scores = new ArrayList<Integer>();
 
-
+        for (int i = 0; i < listA.ids.length; i++) {
+            int j = binarySearch(listB.ids, listA.ids[i], 0, listB.ids.length - 1);
+            if (j != -1) {
+                ids.add(listA.ids[i]);
+                scores.add(listA.scores[i] + listB.scores[j]);
+            }
+        }
 
         return new PostingList(ids, scores, 1, 0);
     }
