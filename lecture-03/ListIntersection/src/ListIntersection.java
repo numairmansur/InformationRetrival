@@ -125,4 +125,28 @@ public class ListIntersection {
 
         return new PostingList(ids, scores, 1, 0);
     }
+
+    public static int exponentialSearch(int[] array, int value, int bound, int size) {
+        while (bound <= size && array[bound] < value) {
+            bound *= 2;
+        }
+        return binarySearch(array, value, bound / 2, Math.min(bound, size));
+    }
+
+    PostingList intersectGallopSearch(PostingList listA, PostingList listB) {
+        ArrayList<Integer> ids = new ArrayList<Integer>();
+        ArrayList<Integer> scores = new ArrayList<Integer>();
+
+        int lastIntersectedValueInListB = 1;
+        for (int i = 0; i < listA.ids.length; i++) {
+            int j = exponentialSearch(listB.ids, listA.ids[i], lastIntersectedValueInListB, listB.ids.length - 1);
+            if (j != -1) {
+                ids.add(listA.ids[i]);
+                scores.add(listA.scores[i] + listB.scores[j]);
+                lastIntersectedValueInListB = j;
+            }
+        }
+
+        return new PostingList(ids, scores, 1, 0);
+    }
 }

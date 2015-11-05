@@ -30,23 +30,29 @@ public class ListIntersectionMain {
         // for (int i = 0; i < m; i++) {
         // li.performanceTest(lists[i], listNames[i]); }
 
+//        int[] arr = {1, 2, 7, 9, 13, 15, 17};
+//        int val = 1000;
+//        int j = li.exponentialSearch(arr, val, arr.length - 1);
+//        int j = li.exponentialSearch(lists[0].ids, val, lists[0].ids.length - 1);
+
         long totalTime = 0;
         int numOfTests = 10;
 
         // Performance test for our intersect.
         for (int run = 0; run < numOfTests; run++) {
-            System.out.print("Intersecting \"" + listNames[0] + "\" with \"" + listNames[0] + "\" ...");
+            System.out.print("Intersecting \"" + listNames[0] + "\" with \"" + listNames[1] + "\" ...");
             System.out.flush();
             long time1 = System.currentTimeMillis();
 
             // Linear Time Intersection
-//            li.intersect(lists[0], lists[1]);
+            // li.intersect(lists[0], lists[1]);
 
-            // Binary Search Intersection
             if (lists[0].ids.length < lists[1].ids.length) {
-                li.intersectBinarySearch(lists[0], lists[1]);
+//                li.intersectBinarySearch(lists[0], lists[1]);
+                li.intersectGallopSearch(lists[0], lists[1]);
             } else {
-                li.intersectBinarySearch(lists[1], lists[0]);
+//                li.intersectBinarySearch(lists[1], lists[0]);
+                li.intersectGallopSearch(lists[1], lists[0]);
             }
 
             long time2 = System.currentTimeMillis();
