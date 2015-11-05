@@ -108,4 +108,28 @@ public class ListIntersection {
 
         return new PostingList(ids, scores, 1, 0);
     }
+
+    public static int binarySearch(int[] array, int value, int min, int max) {
+        while (min <= max) {
+            int mid = (max - min) / 2;
+
+            if (array[mid] == value) {
+                return mid;
+            } else if (array[mid] < value) {
+                min = mid + 1;
+            } else {
+                max = mid - 1;
+            }
+        }
+        return -1;
+    }
+
+    PostingList intersectBinarySearch(PostingList list1, PostingList list) {
+        ArrayList<Integer> ids = new ArrayList<Integer>();
+        ArrayList<Integer> scores = new ArrayList<Integer>();
+
+
+
+        return new PostingList(ids, scores, 1, 0);
+    }
 }

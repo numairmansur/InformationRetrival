@@ -27,6 +27,11 @@ public class ListIntersectionMain {
         // for (int i = 0; i < m; i++) {
         // li.performanceTest(lists[i], listNames[i]); }
 
+        int[] arr = {1, 2, 7, 9, 13, 15, 17};
+        int val = 7;
+
+        int idx = li.binarySearch(arr, val, 0, arr.length - 1);
+
         long totalTime = 0;
         int numOfTests = 10;
 
