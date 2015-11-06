@@ -73,7 +73,7 @@ public class ListIntersection {
     /**
      * Simple linear-time intersect.
      */
-    PostingList intersect(PostingList list1, PostingList list2) {
+    public PostingList intersect(PostingList list1, PostingList list2) {
         int n1 = list1.ids.length;
         int n2 = list2.ids.length;
         int i = 0;
@@ -97,7 +97,7 @@ public class ListIntersection {
         return new PostingList(ids, scores, 1, 0);
     }
 
-    public static int binarySearch(int[] array, int value, int min, int max) {
+    static int binarySearch(int[] array, int value, int min, int max) {
         while (min <= max) {
             int mid = (min + max) / 2;
             if (array[mid] == value) {
@@ -111,7 +111,7 @@ public class ListIntersection {
         return -1;
     }
 
-    PostingList intersectBinarySearch(PostingList listA, PostingList listB) {
+    public PostingList intersectBinarySearch(PostingList listA, PostingList listB) {
         ArrayList<Integer> ids = new ArrayList<Integer>();
         ArrayList<Integer> scores = new ArrayList<Integer>();
 
@@ -126,14 +126,14 @@ public class ListIntersection {
         return new PostingList(ids, scores, 1, 0);
     }
 
-    public static int exponentialSearch(int[] array, int value, int bound, int size) {
+    static int exponentialSearch(int[] array, int value, int bound, int size) {
         while (bound <= size && array[bound] < value) {
             bound *= 2;
         }
         return binarySearch(array, value, bound / 2, Math.min(bound, size));
     }
 
-    PostingList intersectGallopSearch(PostingList listA, PostingList listB) {
+    public PostingList intersectGallopSearch(PostingList listA, PostingList listB) {
         ArrayList<Integer> ids = new ArrayList<Integer>();
         ArrayList<Integer> scores = new ArrayList<Integer>();
 
