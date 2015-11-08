@@ -111,6 +111,9 @@ public class ListIntersection {
         return -1;
     }
 
+    /**
+     * Binary search intersect.
+     */
     public PostingList intersectBinarySearch(PostingList listA, PostingList listB) {
         ArrayList<Integer> ids = new ArrayList<Integer>();
         ArrayList<Integer> scores = new ArrayList<Integer>();
@@ -126,12 +129,17 @@ public class ListIntersection {
         return new PostingList(ids, scores, 1, 0);
     }
 
+
+
     static int exponentialSearch(int[] array, int value, int bound, int size) {
         while (bound <= size && array[bound] < value) {if(bound > 0) {bound *= 2;} else {bound += 1;}
         }
         return binarySearch(array, value, bound / 2, Math.min(bound, size));
     }
 
+    /**
+     * Gallop Search intersect.
+     */
     public PostingList intersectGallopSearch(PostingList listA, PostingList listB) {
         ArrayList<Integer> ids = new ArrayList<Integer>();
         ArrayList<Integer> scores = new ArrayList<Integer>();
@@ -154,6 +162,9 @@ public class ListIntersection {
         return current_pointer + 50;
     }
 
+    /**
+     * Skip Pointer intersect.
+     */
 
     public PostingList skipPointers(PostingList listA, PostingList listB)
     {
@@ -171,14 +182,14 @@ public class ListIntersection {
                 pointer = skip(lower_bound);
                 if(pointer >= listB.ids.length)
                 {
-                    pointer = listB.ids.length -1;
+                    pointer = listB.ids.length -1; // If pointer goes out of bound, set it to the length of list B
                 }
                 if ( listB.ids[pointer] < listA.ids[i])
                 {
                     lower_bound=pointer;
                 }
             }
-            int j = binarySearch(listB.ids, listA.ids[i], lower_bound, pointer);
+            int j = binarySearch(listB.ids, listA.ids[i], lower_bound, pointer); // Binary search is giving better results then exponential
             if(j != -1)
             {
                 
