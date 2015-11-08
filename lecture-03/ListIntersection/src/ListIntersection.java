@@ -127,8 +127,7 @@ public class ListIntersection {
     }
 
     static int exponentialSearch(int[] array, int value, int bound, int size) {
-        while (bound <= size && array[bound] < value) {
-            bound *= 2;
+        while (bound <= size && array[bound] < value) {if(bound > 0) {bound *= 2;} else {bound += 1;}
         }
         return binarySearch(array, value, bound / 2, Math.min(bound, size));
     }
@@ -147,6 +146,48 @@ public class ListIntersection {
             }
         }
 
+        return new PostingList(ids, scores, 1, 0);
+    }
+
+
+    static int skip(int current_pointer){
+        return current_pointer + 50;
+    }
+
+
+    public PostingList skipPointers(PostingList listA, PostingList listB)
+    {
+        ArrayList<Integer> ids = new ArrayList<Integer>();
+        ArrayList<Integer> scores = new ArrayList<Integer>();
+        int pointer = 0;
+        int lower_bound = 0;
+
+        for(int i=0; i < listA.ids.length; i++)
+        {
+            
+            while(listA.ids[i] > listB.ids[pointer])
+            {
+                
+                pointer = skip(lower_bound);
+                if(pointer >= listB.ids.length)
+                {
+                    pointer = listB.ids.length -1;
+                }
+                if ( listB.ids[pointer] < listA.ids[i])
+                {
+                    lower_bound=pointer;
+                }
+            }
+            int j = binarySearch(listB.ids, listA.ids[i], lower_bound, pointer);
+            if(j != -1)
+            {
+                
+                ids.add(listA.ids[i]);
+                scores.add(listA.scores[i] + listB.scores[j]);
+                lower_bound = j;
+
+            }
+        }
         return new PostingList(ids, scores, 1, 0);
     }
 }

@@ -46,8 +46,8 @@ public class ListIntersectionMain {
             System.out.print("Reading list \"" + listNames[i] + "\" ... ");
             System.out.flush();
             String fileName = "postinglists/" + listNames[i] + ".txt";
-//            lists[i] = li.readPostingList(fileName, 100, 200 * 1000);
-            lists[i] = li.readPostingList(fileName, 1, 0);
+//            lists[i] = li.readPostingList(fileName, 1, 0);
+            lists[i] = li.readPostingList(fileName, 100, 200*1000);
             System.out.println("done, size = " +  lists[i].ids.length);
         }
 
@@ -72,7 +72,7 @@ public class ListIntersectionMain {
             case 1: method = "intersect"; break;
             case 2: method = "intersectBinarySearch"; break;
             case 3: method = "intersectGallopSearch"; break;
-            case 4: break;  // TODO: Skip Pointers Search
+            case 4: method = "skipPointers"; break;
             default: {
                 System.out.println("You have selected the wrong option!");
                 System.exit(0);
@@ -105,7 +105,7 @@ public class ListIntersectionMain {
 
             try {
                 li.getClass().getMethod(method, PostingList.class, PostingList.class).invoke(li, lists[0], lists[1]);
-            } catch (Exception e) { System.exit(0); }
+            } catch (Exception e) {System.out.print("\n Some Error Occured"); System.exit(0); }
 
             long time2 = System.currentTimeMillis();
             long delta = time2 - time1;
