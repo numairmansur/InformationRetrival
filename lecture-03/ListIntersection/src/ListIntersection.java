@@ -131,7 +131,7 @@ public class ListIntersection {
 
     static int exponentialSearch(int[] array, int value, int bound, int size) {
         while (bound <= size && array[bound] < value) {
-            if(bound > 0) { bound *= 2; } else { bound += 1; }
+            if (bound > 0) { bound *= 2; } else { bound += 1; }
         }
         return binarySearch(array, value, bound / 2, Math.min(bound, size));
     }
