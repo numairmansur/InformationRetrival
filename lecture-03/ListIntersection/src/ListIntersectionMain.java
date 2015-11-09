@@ -47,7 +47,7 @@ public class ListIntersectionMain {
             System.out.flush();
             String fileName = "postinglists/" + listNames[i] + ".txt";
 //            lists[i] = li.readPostingList(fileName, 1, 0);
-            lists[i] = li.readPostingList(fileName, 100, 200*1000);
+            lists[i] = li.readPostingList(fileName, 100, 200 * 1000);
             System.out.println("done, size = " +  lists[i].ids.length);
         }
 
@@ -84,9 +84,6 @@ public class ListIntersectionMain {
         // Performance test.
         // for (int i = 0; i < m; i++) {
         // li.performanceTest(lists[i], listNames[i]); }
-
-//        int[] arr = {1, 2, 7, 9, 13, 15, 17};
-//        int val = 1000;
 
         long totalTime = 0;
         int numOfTests = 10;

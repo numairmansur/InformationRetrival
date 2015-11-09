@@ -129,10 +129,9 @@ public class ListIntersection {
         return new PostingList(ids, scores, 1, 0);
     }
 
-
-
     static int exponentialSearch(int[] array, int value, int bound, int size) {
-        while (bound <= size && array[bound] < value) {if(bound > 0) {bound *= 2;} else {bound += 1;}
+        while (bound <= size && array[bound] < value) {
+            if(bound > 0) { bound *= 2; } else { bound += 1; }
         }
         return binarySearch(array, value, bound / 2, Math.min(bound, size));
     }
@@ -157,9 +156,8 @@ public class ListIntersection {
         return new PostingList(ids, scores, 1, 0);
     }
 
-
-    static int skip(int current_pointer){
-        return current_pointer + 50;
+    static int skip(int currentPointer){
+        return currentPointer + 50;
     }
 
     /**
@@ -171,34 +169,30 @@ public class ListIntersection {
         ArrayList<Integer> ids = new ArrayList<Integer>();
         ArrayList<Integer> scores = new ArrayList<Integer>();
         int pointer = 0;
-        int lower_bound = 0;
+        int lowerBound = 0;
 
-        for(int i=0; i < listA.ids.length; i++)
-        {
-            
-            while(listA.ids[i] > listB.ids[pointer])
-            {
-                
-                pointer = skip(lower_bound);
-                if(pointer >= listB.ids.length)
-                {
+        for (int i=0; i < listA.ids.length; i++) {
+            while (listA.ids[i] > listB.ids[pointer]) {
+                pointer = skip(lowerBound);
+
+                if (pointer >= listB.ids.length) {
                     pointer = listB.ids.length -1; // If pointer goes out of bound, set it to the length of list B
                 }
-                if ( listB.ids[pointer] < listA.ids[i])
-                {
-                    lower_bound=pointer;
+
+                if (listB.ids[pointer] < listA.ids[i]) {
+                    lowerBound = pointer;
                 }
             }
-            int j = binarySearch(listB.ids, listA.ids[i], lower_bound, pointer); // Binary search is giving better results then exponential
-            if(j != -1)
-            {
-                
+
+            int j = binarySearch(listB.ids, listA.ids[i], lowerBound, pointer); // Binary search is giving better
+                                                                                // results then exponential
+            if (j != -1) {
                 ids.add(listA.ids[i]);
                 scores.add(listA.scores[i] + listB.scores[j]);
-                lower_bound = j;
-
+                lowerBound = j;
             }
         }
+
         return new PostingList(ids, scores, 1, 0);
     }
 }
