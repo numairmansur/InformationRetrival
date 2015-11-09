@@ -171,12 +171,12 @@ public class ListIntersection {
         int pointer = 0;
         int lowerBound = 0;
 
-        for (int i=0; i < listA.ids.length; i++) {
+        for (int i = 0; i < listA.ids.length; i++) {
             while (listA.ids[i] > listB.ids[pointer]) {
                 pointer = skip(lowerBound);
 
                 if (pointer >= listB.ids.length) {
-                    pointer = listB.ids.length -1; // If pointer goes out of bound, set it to the length of list B
+                    pointer = listB.ids.length - 1; // If pointer goes out of bound, set it to the length of list B
                 }
 
                 if (listB.ids[pointer] < listA.ids[i]) {

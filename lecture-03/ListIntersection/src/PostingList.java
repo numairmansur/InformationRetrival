@@ -26,7 +26,7 @@ public class PostingList {
     }
 
     /**
-     * Store as ArrayList internally.
+     * Store as native arrays internally.
      */
     public int ids[];
     public int scores[];
