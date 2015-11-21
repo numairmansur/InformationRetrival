@@ -31,7 +31,7 @@ class QgramIndex:
 2]), ('ana', [1, 2]), ('ban', [1]), ('na$', [1, 2])]
         """
 
-        with open(file_name) as file:
+        with open(file_name, 'r', encoding='utf-8') as file:
             record_id = 0
             for record in file:
                 record_id += 1
@@ -97,8 +97,23 @@ class QgramIndex:
         2
         """
 
-        # Fake implementation to make the test work, replace by proper code.
-        return 2
+        n, m = len(p), len(s)
+        delta = 2
+        bound = n + delta + 1 if m / n >= 1.5 else m + 1
+
+        current_row = list(range(bound))
+        for i in list(range(1, n + 1)):
+            previous_row = current_row
+            current_row = [i] + [0] * (bound - 1)
+            for j in list(range(1, bound)):
+                insert = previous_row[j] + 1
+                delete = current_row[j - 1] + 1
+                replace = previous_row[j - 1]
+                if s[j - 1] != p[i - 1]:
+                    replace += 1
+                current_row[j] = min(insert, delete, replace)
+
+        return min(current_row)
 
     def find_matches(self, prefix, delta, k=5, use_qindex=True):
         """ Find all matches for the given prefix with PED at most delta. Return
@@ -121,7 +136,8 @@ if __name__ == "__main__":
     qi = QgramIndex(5)
     qi.read_from_file(file_name)
 
-    qi.merge(qi.inverted_lists)
+    # qi.merge(qi.inverted_lists)
+    # qi.compute_ped('a', 'b')
 
     # for qgram, inverted_list in qi.inverted_lists.items():
     #     print("%s %d" % (qgram, len(inverted_list)))
