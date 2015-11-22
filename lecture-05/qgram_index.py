@@ -131,11 +131,6 @@ class QgramIndex:
         """ Find all matches for the given prefix with PED at most delta. Return
         the top-k matches.
 
-        use_qindex=True: use the qgram index to produce a list of candidate
-        matches and compute the exact PED only for those (default).
-
-        use_qindex=False: compute the PED for all records (baseline).
-
         TODO: provide a doctest using the example file or an extension of it.
         """
 
@@ -161,20 +156,16 @@ class QgramIndex:
 
             merged_list = self.merge(lists)
 
+            ped_count = 0
             for lst in merged_list:
-                if lst[1] >= max(len(prefix), len(self.records[lst[0]][1])) \
-                        - 1 - (delta - 1) * self.q:
+                if lst[1] >= len(prefix) - self.q * delta:
                     ped = self.compute_ped(prefix, self.records[lst[0]][1])
+                    ped_count += 1
                     if ped <= delta:
                         result.append((lst[0], self.records[lst[0]][0], ped))
 
-            # for record in merged_list:
-            #     ped = self.compute_ped(prefix, self.records[record[0]][1])
-            #     if ped <= delta:
-            #         result.append((record[0], self.records[record[0]][0], ped))
-
             print('Time Q: %s s' % (time() - st))
-            print('#PEDs Q: %d\n' % (len(merged_list)))
+            print('#PEDs Q: %d\n' % ped_count)
 
         else:
             # Compute the PED for all records (baseline)
