@@ -9,7 +9,12 @@ import re
 import sys
 
 from time import time
-from collections import Counter
+
+
+GREEN_CLR = '\033[32m'
+YELLOW_CLR = '\033[33m'
+PURPLE_CLR = '\033[35m'
+END_CLR = '\033[0m'
 
 
 class QgramIndex:
@@ -44,8 +49,12 @@ class QgramIndex:
                         # If q-gram is seen for first time, create an empty
                         # inverted list for it. """
                         if qgram not in self.inverted_lists:
-                            self.inverted_lists[qgram] = list()
-                        self.inverted_lists[qgram].append(record_id)
+                            self.inverted_lists[qgram] = dict()
+
+                        if record_id in self.inverted_lists[qgram].keys():
+                            self.inverted_lists[qgram][record_id] += 1
+                        else:
+                            self.inverted_lists[qgram][record_id] = 1
 
     def qgrams(self, record):
         """ All q-grams of the given record.
@@ -69,7 +78,8 @@ class QgramIndex:
         """ Merge the q-gram index lists and return a list of tuples (record_id,
         count).
 
-        >>> QgramIndex.merge([[1, 2, 3], [2, 3, 4], [3, 4, 5]])
+        >>> QgramIndex.merge([[[1, 1], [2, 1], [3, 1]],
+        [[2, 1], [3, 1], [4, 1]], [[3, 1], [4, 1], [5, 1]]])
         [(1, 1), (2, 2), (3, 3), (4, 2), (5, 1)]
         """
 
@@ -79,9 +89,13 @@ class QgramIndex:
             merged_list = list()
             i, j = 0, 0
             while i < len(l1) and j < len(l2):
-                if l1[i] < l2[j]:
+                if l1[i][0] < l2[j][0]:
                     merged_list.append(l1[i])
                     i += 1
+                elif l1[i][0] == l2[j][0]:
+                    merged_list.append((l1[i][0], l1[i][1] + l2[j][1]))
+                    i += 1
+                    j += 1
                 else:
                     merged_list.append(l2[j])
                     j += 1
@@ -90,7 +104,7 @@ class QgramIndex:
             if j < len(l2):
                 merged_list.extend(l2[j:])
 
-        return sorted(Counter(merged_list).most_common())
+        return merged_list
 
     @staticmethod
     def compute_ped(p, s):
@@ -124,7 +138,7 @@ class QgramIndex:
         the top-k matches.
 
         use_qindex=True: use the qgram index to produce a list of candidate
-        matches, and compute the exact PED only for those (default).
+        matches and compute the exact PED only for those (default).
 
         use_qindex=False: compute the PED for all records (baseline).
 
@@ -132,17 +146,21 @@ class QgramIndex:
         """
 
         result = list()
-        tst = dict()
-        lists = list()
 
         if use_qindex:
-            lists = [records for qgram, records in self.inverted_lists.items()
+            # Compute the PED only for candidate matches (default)
+            st = time()
+            lists = [list(records.items())
+                     for qgram, records in self.inverted_lists.items()
                      if prefix in qgram]
 
-            for record in self.merge(lists):
+            merged_list = self.merge(lists)
+            for record in merged_list:
                 ped = self.compute_ped(prefix, self.records[record[0]][1])
                 if ped <= delta:
-                    result.append((self.records[record[0]][0], ped))
+                    result.append((record[0], self.records[record[0]][0], ped))
+            print('Time Q: %s s' % (time() - st))
+            print('#PEDs Q: %d\n' % (len(merged_list)))
 
         else:
             # Compute the PED for all records (baseline)
@@ -150,10 +168,11 @@ class QgramIndex:
             for record_id, record in self.records.items():
                 ped = self.compute_ped(prefix, record[1])
                 if ped <= delta:
-                    result.append((record[0], ped))
-            print('Time B: %s s' % (time() - st))
+                    result.append((record_id, record[0], ped))
+            print('Time B: %s s\n' % (time() - st))
 
-        return result
+        return sorted(result, key=lambda x: x[1])[:k]
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
@@ -164,11 +183,20 @@ if __name__ == '__main__':
     qi = QgramIndex(3)
     qi.read_from_file(file_name)
 
-    query = 'an'
-    normalized_query = re.sub('\W+', '', query).lower()
-    delta = len(normalized_query) // 4
+    while True:
+        msg = PURPLE_CLR + \
+            '> Enter the query (type "exit" for quitting): ' + END_CLR
+        query = input(msg)
+        if query == 'exit':
+            break
 
-    qi.find_matches(normalized_query, delta, use_qindex=False)
+        normalized_query = re.sub('\W+', '', query).lower()
+        delta = len(normalized_query) // 4
 
-    # for qgram, inverted_list in qi.inverted_lists.items():
-    #     print("%s %d" % (qgram, len(inverted_list)))
+        hits = qi.find_matches(normalized_query, delta, use_qindex=False)
+        if any(hits):
+            for hit in hits:
+                print(GREEN_CLR + '< ' + qi.records[hit[0]][0] + END_CLR)
+        else:
+            print('No hits')
+        print()
