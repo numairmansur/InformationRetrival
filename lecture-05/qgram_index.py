@@ -12,7 +12,6 @@ from time import time
 
 
 GREEN_CLR = '\033[32m'
-YELLOW_CLR = '\033[33m'
 PURPLE_CLR = '\033[35m'
 END_CLR = '\033[0m'
 
