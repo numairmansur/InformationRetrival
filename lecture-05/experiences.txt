@@ -1,0 +1,5 @@
+It took us 8 hours to do the Exercise Sheet 5.
+
+The major problem was misunderstanding the task, particularly, how to implement the g-Gram algorithm and (later) which one to use: ED or PED. After knowing what we are supposed to do, we completed the task quickly.
+
+And, as usual, the performance issue (Python!).
