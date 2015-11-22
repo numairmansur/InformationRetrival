@@ -63,14 +63,10 @@ class QgramIndex:
         ['$$b', '$ba', 'ban', 'ana', 'na$', 'a$$']
         """
 
-        qgrams = []
         pad = "$" * (self.q - 1)
         record = pad + record + pad
 
-        for i in range(0, len(record) - self.q + 1):
-            qgrams.append(record[i:i + self.q])
-
-        return qgrams
+        return [record[i:i+self.q] for i in range(0, len(record) - self.q + 1)]
 
     @staticmethod
     def merge(lists):
@@ -114,8 +110,7 @@ class QgramIndex:
         """
 
         n, m = len(p), len(s)
-        # delta = 2
-        # bound = n + delta + 1 if m / n >= 1.5 else m + 1
+        # bound = n + delta + 1
         bound = m + 1
 
         current_row = list(range(bound))
@@ -149,15 +144,35 @@ class QgramIndex:
         if use_qindex:
             # Compute the PED only for candidate matches (default)
             st = time()
-            lists = [list(records.items())
-                     for qgram, records in self.inverted_lists.items()
-                     if prefix in qgram]
+            all_qgrams = self.inverted_lists.keys()
+
+            # lists = list()
+            # for qgram in self.qgrams(prefix):
+            #     if qgram in all_qgrams:
+            #         lists.append(sorted(list(
+            #             zip(self.inverted_lists[qgram].keys(),
+            #                 self.inverted_lists[qgram].values())
+            #         )))
+
+            lists = [sorted(list(
+                zip(self.inverted_lists[qgram].keys(),
+                    self.inverted_lists[qgram].values())
+            )) for qgram in self.qgrams(prefix) if qgram in all_qgrams]
 
             merged_list = self.merge(lists)
-            for record in merged_list:
-                ped = self.compute_ped(prefix, self.records[record[0]][1])
-                if ped <= delta:
-                    result.append((record[0], self.records[record[0]][0], ped))
+
+            for lst in merged_list:
+                if lst[1] >= max(len(prefix), len(self.records[lst[0]][1])) \
+                        - 1 - (delta - 1) * self.q:
+                    ped = self.compute_ped(prefix, self.records[lst[0]][1])
+                    if ped <= delta:
+                        result.append((lst[0], self.records[lst[0]][0], ped))
+
+            # for record in merged_list:
+            #     ped = self.compute_ped(prefix, self.records[record[0]][1])
+            #     if ped <= delta:
+            #         result.append((record[0], self.records[record[0]][0], ped))
+
             print('Time Q: %s s' % (time() - st))
             print('#PEDs Q: %d\n' % (len(merged_list)))
 
@@ -192,7 +207,7 @@ if __name__ == '__main__':
         normalized_query = re.sub('\W+', '', query).lower()
         delta = len(normalized_query) // 4
 
-        hits = qi.find_matches(normalized_query, delta, use_qindex=False)
+        hits = qi.find_matches(normalized_query, delta, use_qindex=True)
         if any(hits):
             for hit in hits:
                 print(GREEN_CLR + '< ' + qi.records[hit[0]][0] + END_CLR)
