@@ -33,17 +33,18 @@ class QgramIndex:
         >>> qi = QgramIndex(3)
         >>> qi.read_from_file('example.txt')
         >>> sorted(qi.inverted_lists.items())
-        [('$$a', [2]), ('$$b', [1]), ('$an', [2]), ('$ba', [1]), ('a$$', [1, \
-2]), ('ana', [1, 2]), ('ban', [1]), ('na$', [1, 2])]
+        [('$$a', {2: 1}), ('$$b', {1: 1, 3: 1}), ('$an', {2: 1}), ('$ba', \
+{1: 1, 3: 1}), ('ako', {3: 1}), ('ana', {1: 1, 2: 1, 3: 2}), ('ban', {1: 1, \
+3: 1}), ('kon', {3: 1}), ('nak', {3: 1}), ('nan', {3: 1}), ('ong', {3: 1})]
         """
 
         with open(file_name, 'r', encoding='utf-8') as file:
             record_id = 0
             for record in file:
                 record_id += 1
-                normalized = re.sub('\W+', '', record).lower()
-                self.records[record_id] = (record.replace('\n', ''), normalized)
-                for qgram in self.qgrams(normalized):
+                normlzd = re.sub('\W+', '', record).lower()
+                self.records[record_id] = (record.replace('\n', ''), normlzd)
+                for qgram in self.qgrams(normlzd):
                     if len(qgram) > 0:
                         # If q-gram is seen for first time, create an empty
                         # inverted list for it. """
@@ -60,12 +61,10 @@ class QgramIndex:
 
         >>> qi = QgramIndex(3)
         >>> qi.qgrams("bana")
-        ['$$b', '$ba', 'ban', 'ana', 'na$', 'a$$']
+        ['$$b', '$ba', 'ban', 'ana']
         """
 
-        pad = "$" * (self.q - 1)
-        record = pad + record + pad
-
+        record = "$" * (self.q - 1) + record
         return [record[i:i+self.q] for i in range(0, len(record) - self.q + 1)]
 
     @staticmethod
@@ -73,9 +72,9 @@ class QgramIndex:
         """ Merge the q-gram index lists and return a list of tuples (record_id,
         count).
 
-        >>> QgramIndex.merge([[[1, 1], [2, 1], [3, 1]],
-        [[2, 1], [3, 1], [4, 1]], [[3, 1], [4, 1], [5, 1]]])
-        [(1, 1), (2, 2), (3, 3), (4, 2), (5, 1)]
+        >>> QgramIndex.merge([[[1, 1], [2, 1], [3, 1]], [[2, 1], [3, 1], \
+[4, 1]], [[3, 1], [4, 1], [5, 1]]])
+        [[1, 1], [2, 2], [3, 3], [4, 2], [5, 1]]
         """
 
         merged_list = list()
@@ -88,7 +87,7 @@ class QgramIndex:
                     merged_list.append(l1[i])
                     i += 1
                 elif l1[i][0] == l2[j][0]:
-                    merged_list.append((l1[i][0], l1[i][1] + l2[j][1]))
+                    merged_list.append([l1[i][0], l1[i][1] + l2[j][1]])
                     i += 1
                     j += 1
                 else:
@@ -110,7 +109,6 @@ class QgramIndex:
         """
 
         n, m = len(p), len(s)
-        # bound = n + delta + 1
         bound = m + 1
 
         current_row = list(range(bound))
@@ -131,50 +129,42 @@ class QgramIndex:
         """ Find all matches for the given prefix with PED at most delta. Return
         the top-k matches.
 
-        TODO: provide a doctest using the example file or an extension of it.
+        >>> qi = QgramIndex(3)
+        >>> qi.read_from_file('example.txt')
+        >>> qi.find_matches('ba', 0, use_qindex=True)
+        #PEDs Q: 2
+        [(1, 'bana.', 0), (3, 'banana Kong!', 0)]
+
+        >>> qi.find_matches('ba', 0, use_qindex=False)
+        [(1, 'bana.', 0), (3, 'banana Kong!', 0)]
         """
 
         result = list()
 
         if use_qindex:
             # Compute the PED only for candidate matches (default)
-            st = time()
+
             all_qgrams = self.inverted_lists.keys()
-
-            # lists = list()
-            # for qgram in self.qgrams(prefix):
-            #     if qgram in all_qgrams:
-            #         lists.append(sorted(list(
-            #             zip(self.inverted_lists[qgram].keys(),
-            #                 self.inverted_lists[qgram].values())
-            #         )))
-
             lists = [sorted(list(
                 zip(self.inverted_lists[qgram].keys(),
                     self.inverted_lists[qgram].values())
             )) for qgram in self.qgrams(prefix) if qgram in all_qgrams]
 
-            merged_list = self.merge(lists)
-
             ped_count = 0
-            for lst in merged_list:
+            for lst in self.merge(lists):
                 if lst[1] >= len(prefix) - self.q * delta:
                     ped = self.compute_ped(prefix, self.records[lst[0]][1])
                     ped_count += 1
                     if ped <= delta:
                         result.append((lst[0], self.records[lst[0]][0], ped))
-
-            print('Time Q: %s s' % (time() - st))
-            print('#PEDs Q: %d\n' % ped_count)
+            print('#PEDs Q: %d' % ped_count)
 
         else:
             # Compute the PED for all records (baseline)
-            st = time()
             for record_id, record in self.records.items():
                 ped = self.compute_ped(prefix, record[1])
                 if ped <= delta:
                     result.append((record_id, record[0], ped))
-            print('Time B: %s s\n' % (time() - st))
 
         return sorted(result, key=lambda x: x[2])[:k]
 
@@ -201,7 +191,13 @@ if __name__ == '__main__':
         normalized_query = re.sub('\W+', '', query).lower()
         delta = len(normalized_query) // 4
 
+        st = time()
         hits = qi.find_matches(normalized_query, delta, use_qindex=use_index)
+        if use_index:
+            print('Time Q: %s s\n' % (time() - st))
+        else:
+            print('Time B: %s s\n' % (time() - st))
+
         if any(hits):
             for hit in hits:
                 print(GREEN_CLR + '< ' + qi.records[hit[0]][0] + END_CLR)
