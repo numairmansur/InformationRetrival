@@ -194,9 +194,9 @@ if __name__ == '__main__':
         st = time()
         hits = qi.find_matches(normalized_query, delta, use_qindex=use_index)
         if use_index:
-            print('Time Q: %s s\n' % (time() - st))
+            print('Time Q: {0:.3f} s'.format(time() - st))
         else:
-            print('Time B: %s s\n' % (time() - st))
+            print('Time B: {0:.3f} s'.format(time() - st))
 
         if any(hits):
             for hit in hits:
