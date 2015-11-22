@@ -8,6 +8,7 @@ Numair Mansur <numair.mansur@gmail.com>
 import re
 import sys
 
+from time import time
 from collections import Counter
 
 
@@ -18,6 +19,7 @@ class QgramIndex:
         """ Create an empty q-gram index. """
 
         self.inverted_lists = dict()
+        self.records = dict()
         self.q = q
 
     def read_from_file(self, file_name):
@@ -25,7 +27,7 @@ class QgramIndex:
         Construct index from the given file. The format is one record per line.
 
         >>> qi = QgramIndex(3)
-        >>> qi.read_from_file("example.txt")
+        >>> qi.read_from_file('example.txt')
         >>> sorted(qi.inverted_lists.items())
         [('$$a', [2]), ('$$b', [1]), ('$an', [2]), ('$ba', [1]), ('a$$', [1, \
 2]), ('ana', [1, 2]), ('ban', [1]), ('na$', [1, 2])]
@@ -35,8 +37,9 @@ class QgramIndex:
             record_id = 0
             for record in file:
                 record_id += 1
-                record = re.sub("\W+", "", record).lower()
-                for qgram in self.qgrams(record):
+                normalized = re.sub('\W+', '', record).lower()
+                self.records[record_id] = (record.replace('\n', ''), normalized)
+                for qgram in self.qgrams(normalized):
                     if len(qgram) > 0:
                         # If q-gram is seen for first time, create an empty
                         # inverted list for it. """
@@ -71,7 +74,7 @@ class QgramIndex:
         """
 
         merged_list = list()
-        for qgram, l2 in qi.inverted_lists.items():
+        for l2 in lists:
             l1 = merged_list
             merged_list = list()
             i, j = 0, 0
@@ -98,8 +101,9 @@ class QgramIndex:
         """
 
         n, m = len(p), len(s)
-        delta = 2
-        bound = n + delta + 1 if m / n >= 1.5 else m + 1
+        # delta = 2
+        # bound = n + delta + 1 if m / n >= 1.5 else m + 1
+        bound = m + 1
 
         current_row = list(range(bound))
         for i in list(range(1, n + 1)):
@@ -127,17 +131,44 @@ class QgramIndex:
         TODO: provide a doctest using the example file or an extension of it.
         """
 
-if __name__ == "__main__":
+        result = list()
+        tst = dict()
+        lists = list()
+
+        if use_qindex:
+            lists = [records for qgram, records in self.inverted_lists.items()
+                     if prefix in qgram]
+
+            for record in self.merge(lists):
+                ped = self.compute_ped(prefix, self.records[record[0]][1])
+                if ped <= delta:
+                    result.append((self.records[record[0]][0], ped))
+
+        else:
+            # Compute the PED for all records (baseline)
+            st = time()
+            for record_id, record in self.records.items():
+                ped = self.compute_ped(prefix, record[1])
+                if ped <= delta:
+                    result.append((record[0], ped))
+            print('Time B: %s s' % (time() - st))
+
+        return result
+
+if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print("Usage: python3 qgram_index.py <file>")
+        print('Usage: python3 qgram_index.py <file>')
         sys.exit()
 
     file_name = sys.argv[1]
-    qi = QgramIndex(5)
+    qi = QgramIndex(3)
     qi.read_from_file(file_name)
 
-    # qi.merge(qi.inverted_lists)
-    # qi.compute_ped('a', 'b')
+    query = 'an'
+    normalized_query = re.sub('\W+', '', query).lower()
+    delta = len(normalized_query) // 4
+
+    qi.find_matches(normalized_query, delta, use_qindex=False)
 
     # for qgram, inverted_list in qi.inverted_lists.items():
     #     print("%s %d" % (qgram, len(inverted_list)))
