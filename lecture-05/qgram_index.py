@@ -185,7 +185,7 @@ class QgramIndex:
                     result.append((record_id, record[0], ped))
             print('Time B: %s s\n' % (time() - st))
 
-        return sorted(result, key=lambda x: x[1])[:k]
+        return sorted(result, key=lambda x: x[2])[:k]
 
 
 if __name__ == '__main__':
@@ -204,10 +204,13 @@ if __name__ == '__main__':
         if query == 'exit':
             break
 
+        idx = input(PURPLE_CLR + '> Use q-Gram Index? (y/n): ' + END_CLR)
+        use_index = True if idx == 'y' else False
+
         normalized_query = re.sub('\W+', '', query).lower()
         delta = len(normalized_query) // 4
 
-        hits = qi.find_matches(normalized_query, delta, use_qindex=True)
+        hits = qi.find_matches(normalized_query, delta, use_qindex=use_index)
         if any(hits):
             for hit in hits:
                 print(GREEN_CLR + '< ' + qi.records[hit[0]][0] + END_CLR)
