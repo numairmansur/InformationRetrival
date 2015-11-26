@@ -12,6 +12,7 @@ $(function() {
                 url = 'http://' + host + ':' + port + '/?q=' + query;
 
             if (query != '') {
+                $resultArea.html('');
                 $spinner.show();
                 $.get(url, function (result) {
                     if (result != '[]') {
