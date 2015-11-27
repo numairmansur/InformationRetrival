@@ -17,6 +17,9 @@ $(function() {
                 $resultTable.hide();
                 $noHits.hide();
                 $spinner.show();
+
+                // TODO: if there is a new request, abort any other requests
+
                 $.get(url, function (result) {
                     if (result != '[]') {
                         var movies = $.parseJSON(result), list = '';
