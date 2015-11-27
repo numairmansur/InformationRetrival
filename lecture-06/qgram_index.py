@@ -36,11 +36,13 @@ class QgramIndex:
                 record_id += 1
 
                 splitted = line.split('\t')
+                id = splitted[0].replace('.', '/')      # Freebase movie id
                 title = splitted[1]
                 title_normalized = re.sub('\W+', '', title).lower()
                 year = splitted[2]
 
                 self.records[record_id] = {
+                    'id': id,
                     'title': title,
                     'normlzd': title_normalized,
                     'year': year
@@ -127,7 +129,7 @@ class QgramIndex:
 
         return min(current_row)
 
-    def find_matches(self, prefix, delta, k=10):
+    def find_matches(self, prefix, delta, k=5):
         """ Find all matches for the given prefix with PED at most delta. Return
         the top-k matches.
 
@@ -150,7 +152,8 @@ class QgramIndex:
             if lst[1] >= len(prefix) - self.q * delta:
                 ped = self.compute_ped(prefix, self.records[lst[0]]['normlzd'])
                 if ped <= delta:
-                    result.append((self.records[lst[0]]['title'],
+                    result.append((self.records[lst[0]]['id'],
+                                   self.records[lst[0]]['title'],
                                    self.records[lst[0]]['year'], ped))
 
-        return sorted(result, key=lambda x: x[2])[:k]
+        return sorted(result, key=lambda x: x[3])[:k]

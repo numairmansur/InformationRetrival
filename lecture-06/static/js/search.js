@@ -26,12 +26,22 @@ $(function() {
                         $resultTable.show();
                         $(movies).each(function(idx, movie) {
                             $resultTable.find('tbody').append(
-                                $('<tr>').append(
+                                $('<tr rel="popover" data-img-id="' + movie.id + '">').append(
                                     '<td>' + (idx + 1) + '</td>' +
                                     '<td>' + movie.title + '</td>' +
                                     '<td>' + movie.year + '</td>'
                                 )
                             );
+                        });
+                        $('tr[rel="popover"]').popover({
+                            html: true,
+                            trigger: 'hover',
+                            placement: 'right',
+                            content: function() {
+                                return '<img src="https://usercontent.googleapis.com/freebase/v1/image/' +
+                                    $(this).data('img-id') +
+                                    '?key=AIzaSyCQVC9yA72POMg2VjiQhSJQQP1nf3ToZTs&maxwidth=150" />';
+                            }
                         });
                         $spinner.hide();
                         $noHits.hide();

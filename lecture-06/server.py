@@ -55,8 +55,9 @@ class Response:
         normalized_query = re.sub('\W+', '', unquote(query)).lower()
         delta = len(normalized_query) // 4
 
-        hits = qi.find_matches(normalized_query, delta)
-        result = [{'title': hit[0], 'year': hit[1]} for hit in hits]
+        hits = qi.find_matches(normalized_query, delta, 15)
+        result = [{'id': hit[0], 'title': hit[1], 'year': hit[2]}
+                  for hit in hits]
 
         return json.dumps(result)
 
