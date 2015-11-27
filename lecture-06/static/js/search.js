@@ -3,8 +3,9 @@ $(function() {
         port = window.location.port;
 
     $('#search').keyup(function(e) {
-        var $resultArea = $('#result'),
+        var $resultTable = $('#result'),
             $spinner = $('.spinner'),
+            $noHits = $('.no-hits'),
             forbiddenKeyCodes = [16, 17, 18, 91, 13, 93, 37, 38, 39, 40];
 
         if (forbiddenKeyCodes.indexOf(e.keyCode) == -1) {
@@ -12,24 +13,37 @@ $(function() {
                 url = 'http://' + host + ':' + port + '/?q=' + query;
 
             if (query != '') {
-                $resultArea.html('');
+                $resultTable.find('tbody').html('');
+                $resultTable.hide();
+                $noHits.hide();
                 $spinner.show();
                 $.get(url, function (result) {
                     if (result != '[]') {
                         var movies = $.parseJSON(result), list = '';
+                        $resultTable.show();
                         $(movies).each(function(idx, movie) {
-                            list += '<li>'+ movie.title + ' (' + movie.year + ')</li>';
+                            $resultTable.find('tbody').append(
+                                $('<tr>').append(
+                                    '<td>' + (idx + 1) + '</td>' +
+                                    '<td>' + movie.title + '</td>' +
+                                    '<td>' + movie.year + '</td>'
+                                )
+                            );
                         });
                         $spinner.hide();
-                        $resultArea.html('<ul>' + list + '</ul>');
+                        $noHits.hide();
                     } else {
                         $spinner.hide();
-                        $resultArea.html('No hits :(');
+                        $resultTable.find('tbody').html('');
+                        $resultTable.hide();
+                        $noHits.show();
                     }
                 });
             } else {
                 $spinner.hide();
-                $resultArea.html('');
+                $noHits.hide();
+                $resultTable.find('tbody').html('');
+                $resultTable.hide();
             }
         }
     });

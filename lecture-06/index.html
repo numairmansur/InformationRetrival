@@ -4,25 +4,38 @@
     <meta charset="UTF-8">
     <title>Simple Search Engine</title>
     <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
     <link rel="stylesheet" type="text/css" href="static/css/style.css">
 </head>
 <body>
     <div class="container">
         <div id="main">
-            <h1>Search:</h1>
             <div class="row">
                 <div class="col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
+                    <div class="search-icon text-center"><i class="fa fa-search"></i></div>
                     <input type="search" id="search" class="form-control" placeholder="... using fuzzy prefix searching">
-                    <div class="spinner">
-                        <div class="bounce1"></div>
-                        <div class="bounce2"></div>
-                        <div class="bounce3"></div>
+                    <div class="spinner text-center">
+                        <i class="fa fa-spinner fa-spin"></i>
                     </div>
-                    <div id="result" style="margin-top:10px"></div>
+                    <div class="no-hits">
+                        <p class="lead text-center">No hits</p>
+                    </div>
+                    <div>
+                        <table id="result" class="table table-condensed table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Title</th>
+                                    <th>Year</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </div><!-- /.container -->
+    </div>
 
     <script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
