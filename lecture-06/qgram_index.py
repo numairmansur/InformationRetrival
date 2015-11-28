@@ -35,7 +35,7 @@ class QgramIndex:
             for line in file:
                 record_id += 1
 
-                splitted = line.split('\t')
+                splitted = line.replace('\n', '').split('\t')
                 id = splitted[0].replace('.', '/')      # Freebase movie id
                 title = splitted[1]
                 title_normalized = re.sub('\W+', '', title).lower()
@@ -64,7 +64,7 @@ class QgramIndex:
         """ All q-grams of the given record.
 
         >>> qi = QgramIndex(3)
-        >>> qi.qgrams("bana")
+        >>> qi.qgrams('bana')
         ['$$b', '$ba', 'ban', 'ana']
         """
 
@@ -108,7 +108,7 @@ class QgramIndex:
     def compute_ped(p, s):
         """ Compute the prefix edit distance PED(p, s).
 
-        >>> QgramIndex.compute_ped("shwartz", "schwarzenegger")
+        >>> QgramIndex.compute_ped('shwartz', 'schwarzenegger')
         2
         """
 
@@ -135,9 +135,8 @@ class QgramIndex:
 
         >>> qi = QgramIndex(3)
         >>> qi.read_from_file('example.txt')
-        >>> qi.find_matches('ba', 0, use_qindex=True)
-        #PEDs Q: 2
-        [(1, 'bana.', 0), (3, 'banana Kong!', 0)]
+        >>> qi.find_matches('ba', 0)
+        [('id1', 'bana.', '2010', 0), ('id3', 'banana Kong!', '2012', 0)]
         """
 
         result = list()

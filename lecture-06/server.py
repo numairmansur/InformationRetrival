@@ -17,7 +17,7 @@ from qgram_index import QgramIndex
 
 
 class Server:
-    """ :) """
+    """ The main server class. """
 
     def __init__(self, port):
         self.port = port
@@ -32,18 +32,20 @@ class Server:
         return self.server.accept()
 
     def get_address(self):
+        """ Returns the server's address. """
         return 'http://' + socket.gethostbyname(socket.gethostname()) + ':' + \
                str(self.port) + '/'
 
 
 class Response:
-    """ :) """
+    """ The class containing all information about a request.  """
 
     def __init__(self):
         self.content_type = 'text/plain'
         self.content = ''
 
     def set_content_type(self, file):
+        """ Sets the content type based on the given file's extension. """
         if file.endswith('.html'):
             self.content_type = 'text/html'
         elif file.endswith('.css'):
@@ -51,7 +53,10 @@ class Response:
         elif file.endswith('.js'):
             self.content_type = 'application/javascript'
 
-    def get_hits(self, qi, query):
+    @staticmethod
+    def get_hits(qi, query):
+        """ Returns matching records. """
+
         normalized_query = re.sub('\W+', '', unquote(query)).lower()
         delta = len(normalized_query) // 4
 
@@ -62,6 +67,7 @@ class Response:
         return json.dumps(result)
 
     def set_content(self, request, qi):
+        """ Sets content to the given request. """
         match = re.match(r'^GET /(.*) HTTP/1.1', request)
         if match:
             query = match.group(1)
@@ -84,6 +90,7 @@ class Response:
                 self.content = ''
 
     def get_response(self):
+        """ Returns the response. """
         if any(self.content):
             content_length = len(self.content)
             res = 'HTTP/1.1 200 OK\r\n' \

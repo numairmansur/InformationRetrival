@@ -1,0 +1,2 @@
+Problems:
+    - We didn't find out how to effectively restrict 'Ctrl + A' or 'Cmd + A' and all similar cases.

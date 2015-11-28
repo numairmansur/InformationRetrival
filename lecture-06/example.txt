@@ -1,0 +1,3 @@
+id1	bana.	2010
+id2	ana	2011
+id3	banana Kong!	2012
