@@ -1,6 +1,7 @@
 $(function() {
     var host = window.location.hostname,
-        port = window.location.port;
+        port = window.location.port,
+        requestPool = [];
 
     $('#search').keyup(function(e) {
         var $resultTable = $('#result'),
@@ -18,11 +19,15 @@ $(function() {
                 $noHits.hide();
                 $spinner.show();
 
-                // TODO: if there is a new request, abort any other requests
+                // Abort any other requests
+                $(requestPool).each(function(idx, request) {
+                    request.abort();
+                });
+                requestPool = [];
 
-                $.get(url, function (result) {
+                requestPool.push($.get(url, function(result) {
                     if (result != '[]') {
-                        var movies = $.parseJSON(result), list = '';
+                        var movies = $.parseJSON(result);
                         $resultTable.show();
                         $(movies).each(function(idx, movie) {
                             $resultTable.find('tbody').append(
@@ -43,15 +48,14 @@ $(function() {
                                     '?key=AIzaSyCQVC9yA72POMg2VjiQhSJQQP1nf3ToZTs&maxwidth=150" />';
                             }
                         });
-                        $spinner.hide();
                         $noHits.hide();
                     } else {
-                        $spinner.hide();
                         $resultTable.find('tbody').html('');
                         $resultTable.hide();
                         $noHits.show();
                     }
-                });
+                    $spinner.hide();
+                }));
             } else {
                 $spinner.hide();
                 $noHits.hide();
