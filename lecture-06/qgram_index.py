@@ -36,22 +36,21 @@ class QgramIndex:
                 record_id += 1
 
                 splitted = line.replace('\n', '').split('\t')
-                id = splitted[0].replace('.', '/')      # Freebase movie id
                 title = splitted[1]
                 title_normalized = re.sub('\W+', '', title).lower()
-                year = splitted[2]
 
                 self.records[record_id] = {
-                    'id': id,
+                    'id': splitted[0].replace('.', '/'),    # Freebase movie id
                     'title': title,
                     'normlzd': title_normalized,
-                    'year': year
-                }
+                    'year': splitted[2],
+                    'inv_score': 1 - 1.0 / record_id    # inverted scores just
+                }                                       # for sorting purposes
 
                 for qgram in self.qgrams(title_normalized):
                     if len(qgram) > 0:
-                        # If q-gram is seen for first time, create an empty
-                        # inverted list for it. """
+                        # If a q-gram is seen for the first time, create an
+                        # empty inverted list for it.
                         if qgram not in self.inverted_lists:
                             self.inverted_lists[qgram] = dict()
 
@@ -136,7 +135,8 @@ class QgramIndex:
         >>> qi = QgramIndex(3)
         >>> qi.read_from_file('example.txt')
         >>> qi.find_matches('ba', 0)
-        [('id1', 'bana.', '2010', 0), ('id3', 'banana Kong!', '2012', 0)]
+        [('id1', 'bana.', '2010', 0, 0.0), ('id3', 'banana Kong!', '2012', \
+0, 0.6666666666666667)]
         """
 
         result = list()
@@ -153,6 +153,7 @@ class QgramIndex:
                 if ped <= delta:
                     result.append((self.records[lst[0]]['id'],
                                    self.records[lst[0]]['title'],
-                                   self.records[lst[0]]['year'], ped))
+                                   self.records[lst[0]]['year'], ped,
+                                   self.records[lst[0]]['inv_score']))
 
-        return sorted(result, key=lambda x: x[3])[:k]
+        return sorted(result, key=lambda x: (x[3], x[4]))[:k]

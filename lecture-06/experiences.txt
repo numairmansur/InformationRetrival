@@ -1,2 +1,1 @@
-Problems:
-    - We didn't find out how to effectively restrict 'Ctrl + A' or 'Cmd + A' and all similar cases.
+This task was much more fan than the previous ones, we really liked it. There were no major problems except for how to effectively restrict typing into the search input 'Ctrl + A' or 'Cmd + A' and all similar cases.
