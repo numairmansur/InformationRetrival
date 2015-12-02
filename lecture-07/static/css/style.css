@@ -1,0 +1,45 @@
+#main {
+    margin-top: 15px;
+    margin-bottom: 40px;
+}
+
+.search-icon {
+    font-size: 12em;
+    color: #31708F;
+}
+
+#search {
+    height: 50px;
+    font-size: 1.4em;
+    margin-bottom: 20px;
+}
+
+#search::-webkit-input-placeholder {
+    color: #ccc;
+    font-style: italic;
+    text-align: center;
+    font-size: 0.9em;
+    font-weight: 200;
+}
+
+#search:-moz-placeholder {
+    color: #ccc;
+    font-style: italic;
+    text-align: center;
+    font-size: 0.9em;
+    font-weight: 200;
+}
+
+.spinner {
+    display: none;
+    font-size: 3em;
+    color: #ccc;
+}
+
+#result {
+    display: none;
+}
+
+.no-hits {
+    display: none;
+}
