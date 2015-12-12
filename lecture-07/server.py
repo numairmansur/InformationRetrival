@@ -61,8 +61,8 @@ class Response:
         delta = len(normalized_query) // 4
 
         hits = qi.find_matches(normalized_query, delta, 15)
-        result = [{'id': hit[0], 'title': hit[1], 'year': hit[2]}
-                  for hit in hits]
+        result = [{'city': hit[0], 'country_code': hit[1],
+                   'population': hit[2]} for hit in hits]
 
         return json.dumps(result)
 
@@ -70,7 +70,7 @@ class Response:
         """ Sets content to the given request. """
         match = re.match(r'^GET /(.*) HTTP/1.1', request)
         if match:
-            query = match.group(1)
+            query = unquote(match.group(1))
             if query == '':
                 query = 'index.html'
 
@@ -84,7 +84,7 @@ class Response:
                         with open(query) as file:
                             self.content = file.read()
                             self.set_content_type(query)
-                    except FileNotFoundError:
+                    except OSError:
                         self.content = ''
             else:
                 self.content = ''

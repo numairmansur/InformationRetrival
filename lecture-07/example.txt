@@ -1,3 +1,3 @@
-id1	bana.	2010
-id2	ana	2011
-id3	banana Kong!	2012
+Zurich	CH	EU	12321
+Munchen	DE	EU	4444
+London	UK EU	89012

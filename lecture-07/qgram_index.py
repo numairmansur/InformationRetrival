@@ -18,20 +18,6 @@ class QgramIndex:
         self.records = dict()
         self.q = q
 
-    @staticmethod
-    def decode_line(line):
-        bytes_fix_is_needed = True
-        try:
-            line = line.decode('utf-8')
-        except UnicodeDecodeError:
-            while bytes_fix_is_needed:
-                try:
-                    line = line.decode('utf-8')
-                    bytes_fix_is_needed = False
-                except UnicodeDecodeError as e:
-                    line = line.replace(line[e.start:e.end], b'\xef\xbf\xbd')
-        return line
-
     def read_from_file(self, file_name):
         """
         Construct index from the given file. The format is one record per line.
@@ -39,34 +25,33 @@ class QgramIndex:
         >>> qi = QgramIndex(3)
         >>> qi.read_from_file('example.txt')
         >>> sorted(qi.inverted_lists.items())
-        [('$$a', {2: 1}), ('$$b', {1: 1, 3: 1}), ('$an', {2: 1}), ('$ba', \
-{1: 1, 3: 1}), ('ako', {3: 1}), ('ana', {1: 1, 2: 1, 3: 2}), ('ban', {1: 1, \
-3: 1}), ('kon', {3: 1}), ('nak', {3: 1}), ('nan', {3: 1}), ('ong', {3: 1})]
+        [('$$l', {3: 1}), ('$$m', {2: 1}), ('$$z', {1: 1}), ('$lo', {3: 1}), \
+('$mu', {2: 1}), ('$zu', {1: 1}), ('che', {2: 1}), ('don', {3: 1}), \
+('hen', {2: 1}), ('ich', {1: 1}), ('lon', {3: 1}), ('mun', {2: 1}), \
+('nch', {2: 1}), ('ndo', {3: 1}), ('ond', {3: 1}), ('ric', {1: 1}), \
+('unc', {2: 1}), ('uri', {1: 1}), ('zur', {1: 1})]
+
         """
 
-        with open(file_name, 'rb') as file:
+        with open(file_name, 'r', encoding='utf-8', errors='replace') as file:
             record_id = 0
-
             for line in file:
                 record_id += 1
 
-                if record_id == 176:
-                    print('!')
-
-                line = self.decode_line(line)
-
                 splitted = line.replace('\n', '').split('\t')
-                name = splitted[0]
-                name_normalized = re.sub('\W+', '', name).lower()
+                city = splitted[0]
+                city_normalized = re.sub('\W+', '', city).lower()
+                country_code = splitted[1] if len(splitted) > 1 else ''
+                population = splitted[3] if len(splitted) > 3 else ''
 
                 self.records[record_id] = {
-                    'title': name,
-                    'normlzd': name_normalized,
-                    'country_code': splitted[1],
-                    'population': splitted[3],
+                    'city': city,
+                    'normlzd': city_normalized,
+                    'country_code': country_code,
+                    'population': population
                 }
 
-                for qgram in self.qgrams(name_normalized):
+                for qgram in self.qgrams(city_normalized):
                     if len(qgram) > 0:
                         # If a q-gram is seen for the first time, create an
                         # empty inverted list for it.
@@ -87,7 +72,8 @@ class QgramIndex:
         """
 
         record = "$" * (self.q - 1) + record
-        return [record[i:i+self.q] for i in range(0, len(record) - self.q + 1)]
+        return [record[i:i + self.q]
+                for i in range(0, len(record) - self.q + 1)]
 
     @staticmethod
     def merge(lists):
@@ -153,9 +139,8 @@ class QgramIndex:
 
         >>> qi = QgramIndex(3)
         >>> qi.read_from_file('example.txt')
-        >>> qi.find_matches('ba', 0)
-        [('id1', 'bana.', '2010', 0, 0.0), ('id3', 'banana Kong!', '2012', \
-0, 0.6666666666666667)]
+        >>> qi.find_matches('zur', 0)
+        [('Zurich', 'CH', '12321', 0)]
         """
 
         result = list()
@@ -170,9 +155,9 @@ class QgramIndex:
             if lst[1] >= len(prefix) - self.q * delta:
                 ped = self.compute_ped(prefix, self.records[lst[0]]['normlzd'])
                 if ped <= delta:
-                    result.append((self.records[lst[0]]['id'],
-                                   self.records[lst[0]]['title'],
-                                   self.records[lst[0]]['year'], ped,
-                                   self.records[lst[0]]['inv_score']))
+                    result.append((self.records[lst[0]]['city'],
+                                   self.records[lst[0]]['country_code'],
+                                   self.records[lst[0]]['population'],
+                                   ped))
 
-        return sorted(result, key=lambda x: (x[3], x[4]))[:k]
+        return sorted(result, key=lambda x: x[3], reverse=False)[:k]

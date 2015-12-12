@@ -27,26 +27,17 @@ $(function() {
 
                 requestPool.push($.get(url, function(result) {
                     if (result != '[]') {
-                        var movies = $.parseJSON(result);
+                        var cities = $.parseJSON(result);
                         $resultTable.show();
-                        $(movies).each(function(idx, movie) {
+                        $(cities).each(function(idx, city) {
                             $resultTable.find('tbody').append(
-                                $('<tr rel="popover" data-img-id="' + movie.id + '">').append(
+                                $('<tr>').append(
                                     '<td>' + (idx + 1) + '</td>' +
-                                    '<td>' + movie.title + '</td>' +
-                                    '<td>' + movie.year + '</td>'
+                                    '<td>' + city.city + '</td>' +
+                                    '<td>' + city.country_code + '</td>' +
+                                    '<td>' + city.population + '</td>'
                                 )
                             );
-                        });
-                        $('tr[rel="popover"]').popover({
-                            html: true,
-                            trigger: 'hover',
-                            placement: 'right',
-                            content: function() {
-                                return '<img src="https://usercontent.googleapis.com/freebase/v1/image/' +
-                                    $(this).data('img-id') +
-                                    '?key=AIzaSyCQVC9yA72POMg2VjiQhSJQQP1nf3ToZTs&maxwidth=150" />';
-                            }
                         });
                         $noHits.hide();
                     } else {
