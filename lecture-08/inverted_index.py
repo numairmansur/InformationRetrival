@@ -9,6 +9,8 @@ import re
 import sys
 from math import log
 from time import time
+import numpy as np
+from numpy import linalg as la
 
 
 GREEN_CLR = '\033[32m'
@@ -152,6 +154,33 @@ class InvertedIndex:
             self.num_docs = doc_id
             self.num_terms = len(self.inverted_lists)
 
+    def preprocessing_vsm(self, k, m):
+        """
+        Computes the sparse term-document matrix using the (already built)
+        inverted index. For LSI it also performs SVD using dimensionality k and
+        only the most frequent terms m. Intermediate results are stored as
+        members of this class.
+        """
+        pass
+
+    def process_query_vsm(self, query):
+        """
+        Executes the query using the (full) term-document matrix in the vsm.
+        """
+        pass
+
+    def process_query_lsi(self, query, lmbda):
+        """
+        Executes the query by mapping the query vector to latent space.
+        """
+        pass
+
+    def related_term_pairs(self):
+        """
+        Computes the term-term association matrix T.
+        """
+        pass
+
     def merge(self, l1, l2):
         """
         Merges two given inverted lists
@@ -244,42 +273,36 @@ class InvertedIndex:
                         word.replace(truncated_word, wrapped_word)
             print(' '.join(words), '\n')
 
-    def main(self):
-        """ The main method. """
-        msg = 'Usage: \n\tpython3 inverted_index.py <file>' + \
-              '\n\tpython3 inverted_index.py <file> --benchmark ' + \
-              '<benchmark_file>'
-
-        if len(sys.argv) < 2 or \
-                (len(sys.argv) == 3 and sys.argv[2] == '--benchmark') or \
-                (len(sys.argv) == 4 and sys.argv[2] != '--benchmark'):
-            print(msg)
-            sys.exit()
-
-        file_name = sys.argv[1]
-        print('Loading...\n')
-        self.read_from_file(file_name)
-
-        if len(sys.argv) > 3 and sys.argv[2] == '--benchmark':
-            eb = EvaluateBenchmark(self)
-            eb.evaluate_benchmark(sys.argv[3])
-        else:
-            while True:
-                msg = PURPLE_CLR + \
-                    '> Enter the query (type "exit" for quitting): ' + END_CLR
-                query = input(msg)
-                if query == 'exit':
-                    break
-
-                print('')
-
-                hits = ii.process_query(query)
-                if any(hits):
-                    self.print_output(hits[:3], query)
-                else:
-                    print('No hits')
-
-
 if __name__ == "__main__":
+    if len(sys.argv) < 2 or \
+            (len(sys.argv) == 3 and sys.argv[2] == '--benchmark') or \
+            (len(sys.argv) == 4 and sys.argv[2] != '--benchmark'):
+        msg = 'Usage: \n\tpython3 inverted_index.py <file>' + \
+          '\n\tpython3 inverted_index.py <file> --benchmark ' + \
+          '<benchmark_file>'
+        print(msg)
+        sys.exit()
+
     ii = InvertedIndex()
-    ii.main()
+    file_name = sys.argv[1]
+    print('Loading...\n')
+    ii.read_from_file(file_name)
+
+    if len(sys.argv) > 3 and sys.argv[2] == '--benchmark':
+        eb = EvaluateBenchmark(ii)
+        eb.evaluate_benchmark(sys.argv[3])
+    else:
+        while True:
+            msg = PURPLE_CLR + \
+                '> Enter the query (type "exit" for quitting): ' + END_CLR
+            query = input(msg)
+            if query == 'exit':
+                break
+
+            print('')
+
+            hits = ii.process_query(query)
+            if any(hits):
+                ii.print_output(hits[:3], query)
+            else:
+                print('No hits')
