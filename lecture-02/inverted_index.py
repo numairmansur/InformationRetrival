@@ -9,6 +9,7 @@ import re
 import sys
 from math import log
 from time import time
+import numpy as np
 
 
 GREEN_CLR = '\033[32m'
@@ -17,9 +18,6 @@ PURPLE_CLR = '\033[35m'
 END_CLR = '\033[0m'
 
 # BM25 parameters
-# K = 1.25
-# B = 0.25
-
 K = 0.75
 B = 0.0
 
@@ -79,6 +77,7 @@ class EvaluateBenchmark:
                 splitted_line = line.replace('\n', '').split('\t')
                 self.benchmark_ids[splitted_line[0]] = \
                     [int(x) for x in splitted_line[1].split(' ')]
+
         print('Calculating...')
         st = time()
 
@@ -102,14 +101,17 @@ class EvaluateBenchmark:
 
 
 class InvertedIndex:
-    """ A simple inverted index as explained on the lecture. """
+    """A simple inverted index as explained on the lecture."""
 
     def __init__(self):
         """ Creates an empty inverted index and additional dicts. """
 
-        self.inverted_lists = dict() # dict of inverted indexees
-        self.records = dict() #Saving all the records in the dict
-        self.record_lengths = dict() #Length of each record
+        self.inverted_lists = dict()
+        self.records = dict()
+        self.record_lengths = dict()
+        self.num_terms = 0
+        self.num_docs = 0
+        self.terms = []
 
     def read_from_file(self, file_name):
         """
@@ -118,8 +120,10 @@ class InvertedIndex:
 
         >>> ii = InvertedIndex()
         >>> ii.read_from_file("example.txt")
+        >>> ii.terms
+        ['internet', 'web', 'surfing', 'beach']
         >>> sorted(ii.inverted_lists.items())
-        [('doc', {1: 1, 2: 1, 3: 1}), ('first', {1: 1}), ('second', {2: 1})]
+        [('beach', {4: 1, 5: 1, 6: 1}), ('internet', {1: 1, 2: 1, 4: 1}), ('surfing', {1: 1, 2: 1, 3: 1, 4: 2, 5: 1, 6: 1}), ('web', {1: 1, 3: 1, 4: 1})]
         """
 
         with open(file_name, 'r', encoding='utf-8') as file:
@@ -129,18 +133,36 @@ class InvertedIndex:
                 words = re.split("\W+", line)
                 self.records[doc_id] = line.replace('\n', '')
                 self.record_lengths[doc_id] = len(words)
-                for word in words:
-                    word = word.lower()
-                    if any(word):
-                        """ If a word is seen for first time, create an empty
+                for term in words:
+                    term = term.lower()
+                    if any(term):
+                        """ If a term is seen for first time, create an empty
                         inverted list for it. """
-                        if word not in self.inverted_lists:
-                            self.inverted_lists[word] = dict()
+                        if term not in self.inverted_lists:
+                            self.terms.append(term) # append if we see a term for the first time
+                            self.inverted_lists[term] = dict()
 
-                        if doc_id in self.inverted_lists[word].keys(): #Counts the occurence of each word in each document
-                            self.inverted_lists[word][doc_id] += 1
+                        if doc_id in self.inverted_lists[term].keys():
+                            self.inverted_lists[term][doc_id] += 1
                         else:
-                            self.inverted_lists[word][doc_id] = 1
+                            self.inverted_lists[term][doc_id] = 1
+            self.num_docs = doc_id
+            self.num_terms = len(self.inverted_lists)
+
+
+
+    def build_td_matrix(self):
+    	'''
+    	Build the term-document matrix from the already built inverted index
+    	'''
+    	A = numpy.zeros(self.num_terms, self.num_docs)
+
+    	return A
+
+
+
+
+
 
 
 
@@ -188,51 +210,48 @@ class InvertedIndex:
 
         >>> ii = InvertedIndex()
         >>> file_name = ii.read_from_file('example.txt')
-        >>> ii.process_query('first')
-        [[1, 1.5579153590706245]]
+        >>> ii.process_query('web')
+        [[1, 1.0], [3, 1.0], [4, 1.0]]
         """
         lists = list()
         merged_list = list()
 
-        N = len(self.record_lengths) # Length of the total number of documents
-        AVDL = sum(self.record_lengths.values()) / float(N) # Number of words in each document divided by the total number of documents (Average)
+        N = len(self.record_lengths)
+        AVDL = sum(self.record_lengths.values()) / float(N)
+
         for word in re.split("\W+", query):
             word = word.lower()
             if any(word):
                 if word in self.inverted_lists.keys():
-                    for record_id, tf in self.inverted_lists[word].items(): # tf tells you how many times a word appeard in a document
-                        df = len(self.inverted_lists[word]) # df tells you how many documents contain a word
-                        DL = self.record_lengths[record_id] # Length of a document
+                    for record_id, tf in self.inverted_lists[word].items():
+                        df = len(self.inverted_lists[word])
+                        DL = self.record_lengths[record_id]
                         self.inverted_lists[word][record_id] = \
-                            self.bm25_score(tf, df, N, AVDL, DL) #Chaning the number of occurences of a word in each document by its relevance score
+                            self.bm25_score(tf, df, N, AVDL, DL)
+
                     inv_list = [[x, self.inverted_lists[word][x]]
                                 for x in self.inverted_lists[word]]
+                    
+                    # print("inv_List")
+                    # print(inv_list)
+                    
                     lists.append(sorted(inv_list, key=lambda x: x[0]))
-
+        
+        # print("Lists")
+        # print(lists)
+        
         for i in range(len(lists)):
             merged_list = self.merge(merged_list, lists[i])
+        # #########################
+        # print("Merged list")
+        # print(merged_list)
+        # #########################
         return sorted(merged_list, key=lambda x: x[1], reverse=True)
 
     def print_output(self, hits, query):
         for hit in hits:
             record = self.records[hit[0]].split('\t')
             title = record[0]
-
-
-            #BOOSTING THE RESULTS - - - - - -- - - - 
-            description = record[1].split(' ')
-            word_list = list()
-            for word in description:
-            	word = word.lower()
-            	if self.inverted_lists.get(word) is not None:
-            		keys = list()
-            		for key in self.inverted_lists[word]:
-            			keys.append(key)
-            		listt = [word,int(sum(x for x in [self.inverted_lists[word][key] for key in keys]))]
-            		word_list.append(listt)
-            print(sorted(word_list, key=lambda x: x[1], reverse= False))
-			#BOOSTING ENDED  - - - - -
-
 
             print(GREEN_CLR + title + END_CLR)
 
@@ -255,16 +274,20 @@ class InvertedIndex:
         msg = 'Usage: \n\tpython3 inverted_index.py <file>' + \
               '\n\tpython3 inverted_index.py <file> --benchmark ' + \
               '<benchmark_file>'
-        # Checking for arguments
+
         if len(sys.argv) < 2 or \
                 (len(sys.argv) == 3 and sys.argv[2] == '--benchmark') or \
                 (len(sys.argv) == 4 and sys.argv[2] != '--benchmark'):
             print(msg)
             sys.exit()
-
-        file_name = sys.argv[1] # File name of the movies file
+        file_name = sys.argv[1]
         print('Loading...\n')
-        self.read_from_file(file_name) # Read the file
+        self.read_from_file(file_name)
+
+        ######################################
+        # print("Inverted List")
+        # print(self.inverted_lists)
+        ######################################
 
         if len(sys.argv) > 3 and sys.argv[2] == '--benchmark':
             eb = EvaluateBenchmark(self)
@@ -280,9 +303,8 @@ class InvertedIndex:
                 print('')
 
                 hits = ii.process_query(query)
-                print (hits[:3])
                 if any(hits):
-                    self.print_output(hits[:1], query)
+                    self.print_output(hits[:3], query)
                 else:
                     print('No hits')
 
