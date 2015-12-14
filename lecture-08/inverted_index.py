@@ -192,8 +192,6 @@ class InvertedIndex:
         term_id = 0
         nz_vals, row_inds, col_inds = [], [], []
 
-        # st = time()
-
         for term, inv_list in self.inv_lists_sorted.items():
             for doc_id, tf in inv_list.items():
                 df = len(self.inv_lists_sorted[term])
@@ -208,18 +206,9 @@ class InvertedIndex:
             term_id += 1
         self.A = scipy.sparse.csr_matrix((nz_vals, (row_inds, col_inds)),
                                          dtype=float)
-
-        # print(time() - st)
-
         # LSI
-        # self.A_lsi = np.zeros((len(self.inv_lists_sorted), self.num_docs))
-        # for i, term in enumerate(self.inv_lists_sorted):
-        #     for doc_id, score in self.inv_lists_sorted[term].items():
-        #         self.A_lsi[i, doc_id - 1] = score
-        # self.Uk, Sk, self.Vk = scipy.sparse.linalg.svds(self.A_lsi, k)
         self.Uk, Sk, self.Vk = scipy.sparse.linalg.svds(self.A, k)
         self.Sk = np.diag(Sk)
-        # Ak = Uk.dot(Sk).dot(Vk)
 
     def process_query_vsm(self, query):
         """
