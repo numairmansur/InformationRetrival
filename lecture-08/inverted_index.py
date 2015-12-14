@@ -10,7 +10,10 @@ import sys
 from math import log
 from time import time
 import numpy as np
-from numpy import linalg as la
+import scipy.sparse
+import scipy.sparse.linalg
+
+from collections import OrderedDict
 
 
 GREEN_CLR = '\033[32m'
@@ -115,6 +118,8 @@ class InvertedIndex:
         self.num_terms = 0
         self.num_docs = 0
 
+        self.A = None
+
     def read_from_file(self, file_name):
         """
         Constructs the inverted index from the given file. The format is: one
@@ -154,6 +159,26 @@ class InvertedIndex:
             self.num_docs = doc_id
             self.num_terms = len(self.inverted_lists)
 
+            st = time()
+            N = self.num_docs
+            AVDL = sum(self.record_lengths.values()) / float(N)
+            for term, inv_lists in self.inverted_lists.items():
+                for doc_id, tf in inv_lists.items():
+                    df = len(self.inverted_lists[term])
+                    DL = self.record_lengths[doc_id]
+                    self.inverted_lists[term][doc_id] = \
+                        self.bm25_score(tf, df, N, AVDL, DL)
+            print('Calculating BM25 scores: {0:.2f} s\n'.format(time() - st))
+
+            self.preprocessing_vsm(2, 3)
+            result = self.process_query_vsm('web surfing')
+
+            print('!')
+
+    def bm25_score(self, tf, df, N, AVDL, DL):
+        return tf * (K + 1) / (K * (1 - B + B * DL / AVDL) + tf) * \
+            log((N / df), 2)
+
     def preprocessing_vsm(self, k, m):
         """
         Computes the sparse term-document matrix using the (already built)
@@ -161,13 +186,49 @@ class InvertedIndex:
         only the most frequent terms m. Intermediate results are stored as
         members of this class.
         """
-        pass
+        # inv_lists_sorted = OrderedDict(sorted(self.inverted_lists.items(),
+        #                                       key=lambda x: len(x[1]),
+        #                                       reverse=True)[:m])
+        term_id = 0
+        nz_vals, row_inds, col_inds = [], [], []
+        # for term, inv_list in inv_lists_sorted.items():
+        for term, inv_list in self.inverted_lists.items():
+            for doc_id, value in inv_list.items():
+                if value != 0.0:
+                    nz_vals.append(value)
+                    row_inds.append(term_id)
+                    col_inds.append(doc_id - 1)
+            term_id += 1
+        self.A = scipy.sparse.csr_matrix((nz_vals, (row_inds, col_inds)),
+                                         dtype=float)
+
+        inv_lists_sorted = OrderedDict(sorted(self.inverted_lists.items(),
+                                              key=lambda x: len(x[1]),
+                                              reverse=True)[:m])
+        term_id = 0
+        nz_vals, row_inds, col_inds = [], [], []
+        for term, inv_list in inv_lists_sorted.items():
+
+        U, S, V = scipy.sparse.linalg.svds(self.A, k)
+        S = np.diag(S)
+        Uk = U[:, 0:k]
+        Sk = S[0:k, 0:k]
+        Vk = V[0:k, :]
+        Ak = Uk.dot(Sk).dot(Vk)
+        print('!')
+
 
     def process_query_vsm(self, query):
         """
         Executes the query using the (full) term-document matrix in the vsm.
         """
-        pass
+        keywords = [word.lower() for word in re.split("\W+", query)]
+        q = scipy.sparse.csr_matrix([1 if term in keywords else 0
+                                  for term in self.inverted_lists.keys()])
+
+        result = q.dot(self.A)
+        return sorted(list(zip(result.indices + 1, result.data)),
+                      key=lambda x: x[1], reverse=True)
 
     def process_query_lsi(self, query, lmbda):
         """
@@ -213,10 +274,6 @@ class InvertedIndex:
 
         return merged_list
 
-    def bm25_score(self, tf, df, N, AVDL, DL):
-        return tf * (K + 1) / (K * (1 - B + B * DL / AVDL) + tf) * \
-            log((N / df), 2)
-
     def process_query(self, query):
         """
         Computes the list of ids of all records containing at least one word
@@ -224,8 +281,8 @@ class InvertedIndex:
 
         >>> ii = InvertedIndex()
         >>> file_name = ii.read_from_file('example.txt')
-        >>> ii.process_query('first')
-        [[1, 1.5849625007211563]]
+        >>> ii.process_query('internet')
+        [[1, 1.0], [2, 1.0], [4, 1.0]]
         """
         lists = list()
         merged_list = list()
