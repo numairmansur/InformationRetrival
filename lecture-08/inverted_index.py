@@ -22,8 +22,9 @@ PURPLE_CLR = '\033[35m'
 END_CLR = '\033[0m'
 
 # BM25 parameters
-K = 0.75
-B = 0.0
+bm25k = 0.75
+bm25b = 0.0
+lmbda = 0.6
 
 
 class EvaluateBenchmark:
@@ -82,26 +83,34 @@ class EvaluateBenchmark:
                 self.benchmark_ids[splitted_line[0]] = \
                     [int(x) for x in splitted_line[1].split(' ')]
 
-        print('Calculating...')
+        print('Benchmark evaluation...')
         st = time()
 
         for query, relevant_ids in self.benchmark_ids.items():
-            results_ids = [x[0] for x in self.ii.process_query(query)]
+            # BM25 (VSM)
+            res_ids = [x[0] for x in self.ii.process_query_vsm(query)]
+
+            # LSI
+            # res_ids = [x[0]
+            #            for x in self.ii.process_query_lsi(query, lmbda, True)]
+
+            # BM25 + LSI
+            # res_ids = [x[0] for x in self.ii.process_query_lsi(query, lmbda)]
 
             self.res_relevance = [[res_id, 1 if res_id in relevant_ids else 0]
-                                  for res_id in results_ids]
+                                  for res_id in res_ids]
 
             self.sum_pa3 += self.precision_at_k(None, None, 3)
             self.sum_par += self.precision_at_k(None, None, len(relevant_ids))
-            self.sum_ap += self.average_precision(results_ids, relevant_ids)
+            self.sum_ap += self.average_precision(res_ids, relevant_ids)
 
         num = len(self.benchmark_ids)
         print('\nMP@3: %s, MP@R: %s, MAP: %s' %
               (round(self.sum_pa3 / num, 2),
                round(self.sum_par / num, 2),
                round(self.sum_ap / num, 2)))
-        print('K = %s, B = %s' % (K, B))
-        print('\nCalculation time: %s s' % (round(time() - st, 2)))
+        print('K = %s, B = %s' % (bm25k, bm25b))
+        print('\nEvaluation time: %s s' % (round(time() - st, 2)))
 
 
 class InvertedIndex:
@@ -111,6 +120,7 @@ class InvertedIndex:
         """ Creates an empty inverted index and additional dicts. """
 
         self.inverted_lists = dict()
+        self.inv_lists_sorted = dict()
         self.records = dict()
         self.record_lengths = dict()
 
@@ -119,6 +129,9 @@ class InvertedIndex:
         self.num_docs = 0
 
         self.A = None
+        self.Uk = None
+        self.Sk = None
+        self.Vk = None
 
     def read_from_file(self, file_name):
         """
@@ -146,8 +159,8 @@ class InvertedIndex:
                 for term in words:
                     term = term.lower()
                     if any(term):
-                        """ If a word is seen for first time, create an empty
-                        inverted list for it. """
+                        # If a word is seen for the first time, create an empty
+                        # inverted list for it
                         if term not in self.inverted_lists:
                             self.terms.append(term)
                             self.inverted_lists[term] = dict()
@@ -159,25 +172,9 @@ class InvertedIndex:
             self.num_docs = doc_id
             self.num_terms = len(self.inverted_lists)
 
-            st = time()
-            N = self.num_docs
-            AVDL = sum(self.record_lengths.values()) / float(N)
-            for term, inv_lists in self.inverted_lists.items():
-                for doc_id, tf in inv_lists.items():
-                    df = len(self.inverted_lists[term])
-                    DL = self.record_lengths[doc_id]
-                    self.inverted_lists[term][doc_id] = \
-                        self.bm25_score(tf, df, N, AVDL, DL)
-            print('Calculating BM25 scores: {0:.2f} s\n'.format(time() - st))
-
-            self.preprocessing_vsm(2, 3)
-            result = self.process_query_vsm('web surfing')
-
-            print('!')
-
     def bm25_score(self, tf, df, N, AVDL, DL):
-        return tf * (K + 1) / (K * (1 - B + B * DL / AVDL) + tf) * \
-            log((N / df), 2)
+        return tf * (bm25k + 1) / (bm25k * (1 - bm25b + bm25b * DL / AVDL) +
+                                   tf) * log((N / df), 2)
 
     def preprocessing_vsm(self, k, m):
         """
@@ -186,37 +183,43 @@ class InvertedIndex:
         only the most frequent terms m. Intermediate results are stored as
         members of this class.
         """
-        # inv_lists_sorted = OrderedDict(sorted(self.inverted_lists.items(),
-        #                                       key=lambda x: len(x[1]),
-        #                                       reverse=True)[:m])
+        self.inv_lists_sorted = OrderedDict(sorted(self.inverted_lists.items(),
+                                                   key=lambda x: len(x[1]),
+                                                   reverse=True)[:m])
+        N = self.num_docs
+        AVDL = sum(self.record_lengths.values()) / float(N)
+
         term_id = 0
         nz_vals, row_inds, col_inds = [], [], []
-        # for term, inv_list in inv_lists_sorted.items():
-        for term, inv_list in self.inverted_lists.items():
-            for doc_id, value in inv_list.items():
-                if value != 0.0:
-                    nz_vals.append(value)
-                    row_inds.append(term_id)
-                    col_inds.append(doc_id - 1)
+
+        # st = time()
+
+        for term, inv_list in self.inv_lists_sorted.items():
+            for doc_id, tf in inv_list.items():
+                df = len(self.inv_lists_sorted[term])
+                DL = self.record_lengths[doc_id]
+                self.inv_lists_sorted[term][doc_id] = \
+                    self.bm25_score(tf, df, N, AVDL, DL)
+            nz_vals += [v for v in self.inv_lists_sorted[term].values()
+                        if v != 0]
+            row_inds += [term_id] * len(self.inv_lists_sorted[term])
+            col_inds += [id - 1 for id, v in self.inv_lists_sorted[term].items()
+                         if v != 0]
             term_id += 1
         self.A = scipy.sparse.csr_matrix((nz_vals, (row_inds, col_inds)),
                                          dtype=float)
 
-        inv_lists_sorted = OrderedDict(sorted(self.inverted_lists.items(),
-                                              key=lambda x: len(x[1]),
-                                              reverse=True)[:m])
-        term_id = 0
-        nz_vals, row_inds, col_inds = [], [], []
-        for term, inv_list in inv_lists_sorted.items():
+        # print(time() - st)
 
-        U, S, V = scipy.sparse.linalg.svds(self.A, k)
-        S = np.diag(S)
-        Uk = U[:, 0:k]
-        Sk = S[0:k, 0:k]
-        Vk = V[0:k, :]
-        Ak = Uk.dot(Sk).dot(Vk)
-        print('!')
-
+        # LSI
+        # self.A_lsi = np.zeros((len(self.inv_lists_sorted), self.num_docs))
+        # for i, term in enumerate(self.inv_lists_sorted):
+        #     for doc_id, score in self.inv_lists_sorted[term].items():
+        #         self.A_lsi[i, doc_id - 1] = score
+        # self.Uk, Sk, self.Vk = scipy.sparse.linalg.svds(self.A_lsi, k)
+        self.Uk, Sk, self.Vk = scipy.sparse.linalg.svds(self.A, k)
+        self.Sk = np.diag(Sk)
+        # Ak = Uk.dot(Sk).dot(Vk)
 
     def process_query_vsm(self, query):
         """
@@ -224,90 +227,34 @@ class InvertedIndex:
         """
         keywords = [word.lower() for word in re.split("\W+", query)]
         q = scipy.sparse.csr_matrix([1 if term in keywords else 0
-                                  for term in self.inverted_lists.keys()])
+                                     for term in self.inv_lists_sorted.keys()])
 
-        result = q.dot(self.A)
-        return sorted(list(zip(result.indices + 1, result.data)),
+        scores = q.dot(self.A)
+        return sorted(list(zip(scores.indices + 1, scores.data)),
                       key=lambda x: x[1], reverse=True)
 
-    def process_query_lsi(self, query, lmbda):
+    def process_query_lsi(self, query, lmbda, only_lsi=False):
         """
         Executes the query by mapping the query vector to latent space.
         """
-        pass
+        keywords = [word.lower() for word in re.split("\W+", query)]
+        q = np.array([1 if term in keywords else 0
+                      for term in self.inv_lists_sorted.keys()])
+        qk = q.dot(self.Uk).dot(self.Sk)
+
+        scores = qk.dot(self.Vk) if only_lsi \
+            else lmbda * np.transpose(q) * self.A + (1 - lmbda) * \
+            np.transpose(qk).dot(self.Vk)
+
+        return sorted(list(zip([i + 1 for i in range(0, scores.size)], scores)),
+                      key=lambda x: x[1], reverse=True)
 
     def related_term_pairs(self):
         """
         Computes the term-term association matrix T.
         """
-        pass
-
-    def merge(self, l1, l2):
-        """
-        Merges two given inverted lists
-
-        >>> ii = InvertedIndex()
-        >>> l1 = [[1, 1], [3, 2], [4, 1], [6, 1]]
-        >>> l2 = [[2, 1], [3, 1], [5, 1], [7, 2]]
-        >>> ii.merge(l1, l2)
-        [[1, 1], [2, 1], [3, 3], [4, 1], [5, 1], [6, 1], [7, 2]]
-        """
-        merged_list = list()
-        i, j = 0, 0
-
-        while i < len(l1) and j < len(l2):
-            if l1[i][0] < l2[j][0]:
-                merged_list.append(l1[i])
-                i += 1
-            elif l1[i][0] == l2[j][0]:
-                merged_list.append([l1[i][0], l1[i][1] + l2[j][1]])
-                i += 1
-                j += 1
-            else:
-                merged_list.append(l2[j])
-                j += 1
-
-        if i < len(l1):
-            merged_list.extend(l1[i:])
-        if j < len(l2):
-            merged_list.extend(l2[j:])
-
-        return merged_list
-
-    def process_query(self, query):
-        """
-        Computes the list of ids of all records containing at least one word
-        from the given query.
-
-        >>> ii = InvertedIndex()
-        >>> file_name = ii.read_from_file('example.txt')
-        >>> ii.process_query('internet')
-        [[1, 1.0], [2, 1.0], [4, 1.0]]
-        """
-        lists = list()
-        merged_list = list()
-
-        N = len(self.record_lengths)
-        AVDL = sum(self.record_lengths.values()) / float(N)
-
-        for word in re.split("\W+", query):
-            word = word.lower()
-            if any(word):
-                if word in self.inverted_lists.keys():
-                    for record_id, tf in self.inverted_lists[word].items():
-                        df = len(self.inverted_lists[word])
-                        DL = self.record_lengths[record_id]
-                        self.inverted_lists[word][record_id] = \
-                            self.bm25_score(tf, df, N, AVDL, DL)
-
-                    inv_list = [[x, self.inverted_lists[word][x]]
-                                for x in self.inverted_lists[word]]
-                    lists.append(sorted(inv_list, key=lambda x: x[0]))
-
-        for i in range(len(lists)):
-            merged_list = self.merge(merged_list, lists[i])
-
-        return sorted(merged_list, key=lambda x: x[1], reverse=True)
+        T = self.Uk.dot(np.transpose(self.Uk))
+        # print('!')
 
     def print_output(self, hits, query):
         for hit in hits:
@@ -331,23 +278,29 @@ class InvertedIndex:
             print(' '.join(words), '\n')
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or \
-            (len(sys.argv) == 3 and sys.argv[2] == '--benchmark') or \
-            (len(sys.argv) == 4 and sys.argv[2] != '--benchmark'):
-        msg = 'Usage: \n\tpython3 inverted_index.py <file>' + \
-          '\n\tpython3 inverted_index.py <file> --benchmark ' + \
+    if len(sys.argv) < 4 or \
+            (len(sys.argv) == 5 and sys.argv[4] == '--benchmark') or \
+            (len(sys.argv) == 6 and sys.argv[4] != '--benchmark'):
+        msg = 'Usage: \n\tpython3 inverted_index.py <file> <k> <m>' + \
+          '\n\tpython3 inverted_index.py <file> <k> <m> --benchmark ' + \
           '<benchmark_file>'
         print(msg)
         sys.exit()
 
     ii = InvertedIndex()
     file_name = sys.argv[1]
-    print('Loading...\n')
+    k = int(sys.argv[2])
+    m = int(sys.argv[3])
+    print('Loading movies file...')
     ii.read_from_file(file_name)
+    print('Preprocessing...\n')
+    ii.preprocessing_vsm(k, m)
 
-    if len(sys.argv) > 3 and sys.argv[2] == '--benchmark':
+    ii.related_term_pairs()
+
+    if len(sys.argv) > 5 and sys.argv[4] == '--benchmark':
         eb = EvaluateBenchmark(ii)
-        eb.evaluate_benchmark(sys.argv[3])
+        eb.evaluate_benchmark(sys.argv[5])
     else:
         while True:
             msg = PURPLE_CLR + \
@@ -358,7 +311,9 @@ if __name__ == "__main__":
 
             print('')
 
-            hits = ii.process_query(query)
+            hits = ii.process_query_vsm(query)
+            # hits = ii.process_query_lsi(query, lmbda)
+            # hits = ii.process_query_lsi(query, lmbda, only_lsi=True)
             if any(hits):
                 ii.print_output(hits[:3], query)
             else:
