@@ -242,8 +242,27 @@ class InvertedIndex:
         """
         Computes the term-term association matrix T.
         """
+
         T = self.Uk.dot(np.transpose(self.Uk))
-        # print('!')
+        term_dict = {idx: term
+                     for idx, term in enumerate(self.inv_lists_sorted.keys())}
+
+        added = set()
+        np.fill_diagonal(T, 0)
+        max_values = sorted([((i, t.argmax()), t[t.argmax()])
+                             for i, t in enumerate(T)],
+                            key=lambda x: x[1], reverse=True)
+        max_values = [item for item in max_values
+                      if item[1] not in added and not added.add(item[1])]
+
+        # for pair in max_values[:50]:
+        #     print('{0:15} {1:15} {2:2f}'.format(term_dict[pair[0][0]],
+        #                                      term_dict[pair[0][1]], pair[1]))
+
+        with open('term_pairs.txt', 'w') as f:
+            for pair in max_values[:50]:
+                f.write('%s\t%s\t%f\n' % (term_dict[pair[0][0]],
+                                          term_dict[pair[0][1]], pair[1]))
 
     def print_output(self, hits, query):
         for hit in hits:
@@ -285,7 +304,7 @@ if __name__ == "__main__":
     print('Preprocessing...\n')
     ii.preprocessing_vsm(k, m)
 
-    ii.related_term_pairs()
+    # ii.related_term_pairs()
 
     if len(sys.argv) > 5 and sys.argv[4] == '--benchmark':
         eb = EvaluateBenchmark(ii)
