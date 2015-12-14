@@ -293,20 +293,10 @@ class InvertedIndex:
 					inv_list = [[x, self.inverted_lists[word][x]]
 								for x in self.inverted_lists[word]]
 					
-					# print("inv_List")
-					# print(inv_list)
-					
 					lists.append(sorted(inv_list, key=lambda x: x[0]))
-		
-		# print("Lists")
-		# print(lists)
 		
 		for i in range(len(lists)):
 			merged_list = self.merge(merged_list, lists[i])
-		# #########################
-		# print("Merged list")
-		# print(merged_list)
-		# #########################
 		return sorted(merged_list, key=lambda x: x[1], reverse=True)
 
 	def print_output(self, hits, query):
@@ -354,10 +344,6 @@ class InvertedIndex:
 
 		numpy.set_printoptions(formatter={"float":lambda x : "%5.1f" % x})
 
-		######################################
-		# print("Inverted List")
-		# print(self.inverted_lists)
-		######################################
 
 		if len(sys.argv) > 3 and sys.argv[2] == '--benchmark':
 			eb = EvaluateBenchmark(self)
