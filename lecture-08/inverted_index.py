@@ -92,7 +92,8 @@ class EvaluateBenchmark:
 
             # LSI
             # res_ids = [x[0]
-            #            for x in self.ii.process_query_lsi(query, lmbda, True)]
+            #            for x in self.ii.process_query_lsi(query,\
+            # lmbda, True)]
 
             # BM25 + LSI
             # res_ids = [x[0] for x in self.ii.process_query_lsi(query, lmbda)]
@@ -145,8 +146,9 @@ class InvertedIndex:
         >>> ii.terms
         ['internet', 'web', 'surfing', 'beach']
         >>> sorted(ii.inverted_lists.items())
-        [('beach', [4, 5, 6]), ('internet', [1, 2, 4]), ('surfing', \
-[1, 2, 3, 4, 4, 5, 6]), ('web', [1, 3, 4])]
+        [('beach', {4: 1, 5: 1, 6: 1}), ('internet', {1: 1, 2: 1, 4: 1}), \
+('surfing', {1: 1, 2: 1, 3: 1, 4: 2, 5: 1}), ('web', {1: 1, 3: 1, 4: 1})]
+
         """
 
         with open(file_name, 'r', encoding='utf-8') as file:
@@ -201,8 +203,8 @@ class InvertedIndex:
             nz_vals += [v for v in self.inv_lists_sorted[term].values()
                         if v != 0]
             row_inds += [term_id] * len(self.inv_lists_sorted[term])
-            col_inds += [id - 1 for id, v in self.inv_lists_sorted[term].items()
-                         if v != 0]
+            col_inds += [id - 1 for id,
+                         v in self.inv_lists_sorted[term].items() if v != 0]
             term_id += 1
         self.A = scipy.sparse.csr_matrix((nz_vals, (row_inds, col_inds)),
                                          dtype=float)
@@ -235,7 +237,8 @@ class InvertedIndex:
             else lmbda * np.transpose(q) * self.A + (1 - lmbda) * \
             np.transpose(qk).dot(self.Vk)
 
-        return sorted(list(zip([i + 1 for i in range(0, scores.size)], scores)),
+        return sorted(list(zip([i + 1 for i in range(0, scores.size)],
+                               scores)),
                       key=lambda x: x[1], reverse=True)
 
     def related_term_pairs(self):
@@ -290,8 +293,8 @@ if __name__ == "__main__":
             (len(sys.argv) == 5 and sys.argv[4] == '--benchmark') or \
             (len(sys.argv) == 6 and sys.argv[4] != '--benchmark'):
         msg = 'Usage: \n\tpython3 inverted_index.py <file> <k> <m>' + \
-          '\n\tpython3 inverted_index.py <file> <k> <m> --benchmark ' + \
-          '<benchmark_file>'
+            '\n\tpython3 inverted_index.py <file> <k> <m> --benchmark ' + \
+            '<benchmark_file>'
         print(msg)
         sys.exit()
 
