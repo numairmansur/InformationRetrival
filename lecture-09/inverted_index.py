@@ -71,24 +71,22 @@ def norm_sp_row_l1(matrix):
     matrix.data /= row_sums[row_indices]
 
 
-class InvertedIndex:
-    """ A simple inverted index as explained on the lecture. """
+class Kmeans:
+    """ Class for a simple inverted index. """
 
     def __init__(self):
-        """ Creates an empty inverted index and additional dicts. """
-
         self.inverted_lists = dict()
         self.record_lengths = dict()
         self.terms = []
         self.A = None       # Sparse term-document matrix
 
-    def read_from_file(self, file_name):
+    def build_inverted_index(self, file_name):
         """
-        Constructs the inverted index from the given file. The format is: one
-        record per line.
+        Builds the inverted index from the given file.
+        The format: one record per line.
 
-        >>> ii = InvertedIndex()
-        >>> ii.read_from_file('example.txt')
+        >>> ii = Kmeans()
+        >>> ii.build_inverted_index('example.txt')
         >>> ii.terms
         ['internet', 'web', 'surfing', 'beach']
         >>> sorted(ii.inverted_lists.items())
@@ -125,8 +123,6 @@ class InvertedIndex:
         Computes the sparse term-document matrix using the (already built)
         inverted index.
         """
-        logger.info('Computing term-document matrix A...')
-
         N = len(self.record_lengths)
         AVDL = sum(self.record_lengths.values()) / float(N)
         terms = sorted(self.terms,
@@ -145,14 +141,44 @@ class InvertedIndex:
                 col_inds.append(doc_id - 1)
         self.A = csr_matrix((nz_vals, (row_inds, col_inds)), dtype=float)
 
+    def intitialize_centroids(self, k=50):
+        """
+        Computes a m x k matrix with the initial (random) centroids.
+        Note: All centroids must be different.
+        """
+        pass
+
+    def compute_distances(self, docs, centroids):
+        """
+        Computes a k x n matrix such that the entry at i, j contains the
+        distance between the i-th centroid and the j-th document.
+        """
+        pass
+
+    def compute_assignment(self, distances):
+        """
+        Assigns to each document its closest centroid. Returns a k x n matrix
+        such that the entry at i, j is 1 if document j is close to centroid i,
+        and 0 otherwise.
+        """
+        pass
+
+    def compute_centroids(self, docs, assignment):
+        """
+        Computes a m x k matrix with new centroids. Each centroid should be the
+        average of all the documents assigned to it in the given assignment.
+        """
+        pass
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print('Usage: python3 inverted_index.py <records_file>')
         sys.exit()
 
-    ii = InvertedIndex()
+    k = Kmeans()
     file_name = sys.argv[1]
-    logger.info('Loading "%s"...' % file_name)
-    ii.read_from_file(file_name)
-    ii.build_td_matrix()
+    logger.info('Building inverted index "%s"...' % file_name)
+    k.build_inverted_index(file_name)
+    logger.info('Computing term-document matrix A...')
+    k.build_td_matrix()
