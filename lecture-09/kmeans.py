@@ -82,7 +82,6 @@ class Kmeans:
         self.n = 0      # Total number of records (documents)
         self.m = 0      # Total number of terms
         self.A = None   # Term-document matrix
-        self.C = None   # Term-centroid matrix
 
     def build_inverted_index(self, file_name):
         """
@@ -163,7 +162,8 @@ class Kmeans:
         norm_sp_row_l2(self.A)      # A matrix normalization
 
         logger.info('Initializing centroids...')
-        self.intitialize_centroids(k)
+        centroids = self.intitialize_centroids(k)   # Term-centroid matrix
+        distances = self.compute_distances(centroids)
 
         return result
 
@@ -175,14 +175,14 @@ class Kmeans:
         rows = sorted(random.sample(range(self.n), k))
         cols = [i for i in range(k)]
         vals = [1 for _ in range(k)]
-        self.C = self.A * csr_matrix((vals, (rows, cols)))
+        return self.A * csr_matrix((vals, (rows, cols)), shape=(self.n, k))
 
-    def compute_distances(self, docs, centroids):
+    def compute_distances(self, centroids):
         """
         Computes a k x n matrix such that the entry at i, j contains the
         distance between the i-th centroid and the j-th document.
         """
-        pass
+        return np.transpose(centroids).dot(self.A)
 
     def compute_assignment(self, distances):
         """
