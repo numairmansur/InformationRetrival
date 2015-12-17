@@ -7,9 +7,10 @@ Numair Mansur <numair.mansur@gmail.com>
 
 import re
 import sys
+import random
 import logging
 from math import log
-# from time import time
+from time import time
 
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -78,7 +79,10 @@ class Kmeans:
         self.inverted_lists = dict()
         self.record_lengths = dict()
         self.terms = []
-        self.A = None       # Sparse term-document matrix
+        self.n = 0      # Total number of records (documents)
+        self.m = 0      # Total number of terms
+        self.A = None   # Term-document matrix
+        self.C = None   # Term-centroid matrix
 
     def build_inverted_index(self, file_name):
         """
@@ -114,6 +118,16 @@ class Kmeans:
                         else:
                             self.inverted_lists[term][doc_id] = 1
 
+            self.n = len(self.record_lengths)
+            AVDL = sum(self.record_lengths.values()) / float(self.n)
+
+            for term, inv_list in self.inverted_lists.items():
+                for doc_id, tf in inv_list.items():
+                    df = len(self.inverted_lists[term])
+                    DL = self.record_lengths[doc_id]
+                    self.inverted_lists[term][doc_id] = \
+                        self.bm25_score(tf, df, self.n, AVDL, DL)
+
     def bm25_score(self, tf, df, N, AVDL, DL, bm25k=0.75, bm25b=0.0):
         return tf * (bm25k + 1) / (bm25k * (1 - bm25b + bm25b * DL / AVDL) +
                                    tf) * log((N / df), 2)
@@ -123,30 +137,45 @@ class Kmeans:
         Computes the sparse term-document matrix using the (already built)
         inverted index.
         """
-        N = len(self.record_lengths)
-        AVDL = sum(self.record_lengths.values()) / float(N)
         terms = sorted(self.terms,
                        key=lambda t: len(self.inverted_lists[t]),
                        reverse=True)[:m]
+        self.m = len(terms)
 
+        start = time()
         nz_vals, row_inds, col_inds = [], [], []
         for i, term in enumerate(terms):
-            for doc_id, tf in self.inverted_lists[term].items():
-                df = len(self.inverted_lists[term])
-                DL = self.record_lengths[doc_id]
-                score = self.bm25_score(tf, df, N, AVDL, DL)
-                self.inverted_lists[term][doc_id] = score
+            for doc_id, score in self.inverted_lists[term].items():
                 nz_vals.append(score)
                 row_inds.append(i)
                 col_inds.append(doc_id - 1)
         self.A = csr_matrix((nz_vals, (row_inds, col_inds)), dtype=float)
+        print('Computation time: {0:.2f} s'.format(time() - start))
 
-    def intitialize_centroids(self, k=50):
+    def k_means(self, k=50):
+        """
+        Cluster into k cluster using k-means and return the k final centroids.
+        """
+        result = list()
+
+        k = 2   # TEMPORARILY!
+
+        norm_sp_row_l2(self.A)      # A matrix normalization
+
+        logger.info('Initializing centroids...')
+        self.intitialize_centroids(k)
+
+        return result
+
+    def intitialize_centroids(self, k):
         """
         Computes a m x k matrix with the initial (random) centroids.
         Note: All centroids must be different.
         """
-        pass
+        rows = sorted(random.sample(range(self.n), k))
+        cols = [i for i in range(k)]
+        vals = [1 for _ in range(k)]
+        self.C = self.A * csr_matrix((vals, (rows, cols)))
 
     def compute_distances(self, docs, centroids):
         """
@@ -173,7 +202,7 @@ class Kmeans:
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print('Usage: python3 inverted_index.py <records_file>')
+        print('Usage: python3 kmeans.py <records_file>')
         sys.exit()
 
     k = Kmeans()
@@ -182,3 +211,5 @@ if __name__ == "__main__":
     k.build_inverted_index(file_name)
     logger.info('Computing term-document matrix A...')
     k.build_td_matrix()
+    result = k.k_means()
+    print(result)
