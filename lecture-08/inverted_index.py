@@ -92,7 +92,8 @@ class EvaluateBenchmark:
 
             # LSI
             # res_ids = [x[0]
-            #           for x in self.ii.process_query_lsi(query, lmbda, True)]
+            #            for x in self.ii.process_query_lsi(query,\
+            # lmbda, True)]
 
             # BM25 + LSI
             # res_ids = [x[0] for x in self.ii.process_query_lsi(query, lmbda)]
@@ -147,6 +148,7 @@ class InvertedIndex:
         >>> sorted(ii.inverted_lists.items())
         [('beach', {4: 1, 5: 1, 6: 1}), ('internet', {1: 1, 2: 1, 4: 1}), \
 ('surfing', {1: 1, 2: 1, 3: 1, 4: 2, 5: 1}), ('web', {1: 1, 3: 1, 4: 1})]
+
         """
 
         with open(file_name, 'r', encoding='utf-8') as file:
@@ -235,8 +237,8 @@ class InvertedIndex:
             else lmbda * np.transpose(q) * self.A + (1 - lmbda) * \
             np.transpose(qk).dot(self.Vk)
 
-        return sorted(list(zip([i + 1
-                                for i in range(0, scores.size)], scores)),
+        return sorted(list(zip([i + 1 for i in range(0, scores.size)],
+                               scores)),
                       key=lambda x: x[1], reverse=True)
 
     def related_term_pairs(self):
