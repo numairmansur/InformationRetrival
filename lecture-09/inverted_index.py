@@ -9,15 +9,66 @@ import re
 import sys
 import logging
 from math import log
-from time import time
+# from time import time
 
 import numpy as np
-import scipy
 from scipy.sparse import csr_matrix
-from scipy.sparse.linalg import svds
 
 logging.basicConfig(format='%(asctime)s : %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def norm_row_l2(matrix):
+    """ L2 normalize rows of a dense matrix.
+    >>> m = np.matrix([[1, 2], [2, 3]], dtype=float)
+    >>> norm_row_l2(m)
+    >>> m
+    matrix([[ 0.4472136 ,  0.89442719],
+            [ 0.5547002 ,  0.83205029]])
+    """
+    sq = np.multiply(matrix, matrix)
+    row_sums = np.array(sq.sum(axis=1))[:, 0]
+    row_sums = np.sqrt(row_sums)
+    matrix /= row_sums[:, None]
+
+
+def norm_sp_row_l2(matrix):
+    """ L2 normalize rows of a sparse csr_matrix.
+    >>> m = np.matrix([[0, 1, 2], [0, 2, 3]], dtype=float)
+    >>> m = csr_matrix(m)
+    >>> norm_sp_row_l2(m)
+    >>> m[0, 0]
+    0.0
+    >>> m[0, 1]
+    0.44721359549995793
+    >>> m[0, 2]
+    0.89442719099991586
+    >>> m[1, 0]
+    0.0
+    >>> m[1, 1]
+    0.55470019622522915
+    >>> m[1, 2]
+    0.83205029433784372
+    """
+    sq = matrix.multiply(matrix)
+    row_sums = np.array(sq.sum(axis=1))[:, 0]
+    row_sums = np.sqrt(row_sums)
+    row_indices, col_indices = matrix.nonzero()
+    matrix.data /= row_sums[row_indices]
+
+
+def norm_sp_row_l1(matrix):
+    """ L1 normalize rows of a dense matrix.
+    >>> m = np.matrix([[1, 2], [3, 3]], dtype=float)
+    >>> m = csr_matrix(m)
+    >>> norm_sp_row_l1(m)
+    >>> m.todense()
+    matrix([[ 0.33333333,  0.66666667],
+            [ 0.5       ,  0.5       ]])
+    """
+    row_sums = np.array(matrix.sum(axis=1))[:, 0]
+    row_indices, col_indices = matrix.nonzero()
+    matrix.data /= row_sums[row_indices]
 
 
 class InvertedIndex:
