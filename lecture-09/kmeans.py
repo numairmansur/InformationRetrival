@@ -19,59 +19,6 @@ logging.basicConfig(format='%(asctime)s : %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def norm_row_l2(matrix):
-    """ L2 normalize rows of a dense matrix.
-    >>> m = np.matrix([[1, 2], [2, 3]], dtype=float)
-    >>> norm_row_l2(m)
-    >>> m
-    matrix([[ 0.4472136 ,  0.89442719],
-            [ 0.5547002 ,  0.83205029]])
-    """
-    sq = np.multiply(matrix, matrix)
-    row_sums = np.array(sq.sum(axis=1))[:, 0]
-    row_sums = np.sqrt(row_sums)
-    matrix /= row_sums[:, None]
-
-
-def norm_sp_row_l2(matrix):
-    """ L2 normalize rows of a sparse csr_matrix.
-    >>> m = np.matrix([[0, 1, 2], [0, 2, 3]], dtype=float)
-    >>> m = csr_matrix(m)
-    >>> norm_sp_row_l2(m)
-    >>> m[0, 0]
-    0.0
-    >>> m[0, 1]
-    0.44721359549995793
-    >>> m[0, 2]
-    0.89442719099991586
-    >>> m[1, 0]
-    0.0
-    >>> m[1, 1]
-    0.55470019622522915
-    >>> m[1, 2]
-    0.83205029433784372
-    """
-    sq = matrix.multiply(matrix)
-    row_sums = np.array(sq.sum(axis=1))[:, 0]
-    row_sums = np.sqrt(row_sums)
-    row_indices, col_indices = matrix.nonzero()
-    matrix.data /= row_sums[row_indices]
-
-
-def norm_sp_row_l1(matrix):
-    """ L1 normalize rows of a dense matrix.
-    >>> m = np.matrix([[1, 2], [3, 3]], dtype=float)
-    >>> m = csr_matrix(m)
-    >>> norm_sp_row_l1(m)
-    >>> m.todense()
-    matrix([[ 0.33333333,  0.66666667],
-            [ 0.5       ,  0.5       ]])
-    """
-    row_sums = np.array(matrix.sum(axis=1))[:, 0]
-    row_indices, col_indices = matrix.nonzero()
-    matrix.data /= row_sums[row_indices]
-
-
 class Kmeans:
     """ Class for a simple inverted index. """
 
@@ -93,8 +40,10 @@ class Kmeans:
         >>> ii.terms
         ['internet', 'web', 'surfing', 'beach']
         >>> sorted(ii.inverted_lists.items())
-        [('beach', {4: 1, 5: 1, 6: 1}), ('internet', {1: 1, 2: 1, 4: 1}), \
-('surfing', {1: 1, 2: 1, 3: 1, 4: 2, 5: 1}), ('web', {1: 1, 3: 1, 4: 1})]
+        [('beach', {4: 1.0, 5: 1.0, 6: 1.0}), ('internet', {1: 1.0, 2: 1.0, \
+4: 1.0}), ('surfing', {1: 0.2630344058337938, 2: 0.2630344058337938, \
+3: 0.2630344058337938, 4: 0.334771061970283, 5: 0.2630344058337938}), \
+('web', {1: 1.0, 3: 1.0, 4: 1.0})]
         """
 
         with open(file_name, 'r', encoding='utf-8') as file:
@@ -159,11 +108,16 @@ class Kmeans:
 
         k = 2   # TEMPORARILY!
 
-        norm_sp_row_l2(self.A)      # A matrix normalization
+        self.norm_sp_row_l2(self.A.T)      # A matrix L2-normalization
 
         logger.info('Initializing centroids...')
         centroids = self.intitialize_centroids(k)   # Term-centroid matrix
+        centroids = centroids.todense()
+        self.norm_row_l2(centroids.T)       # Centroids matrix L2-normalization
+
+        logger.info('Computing distances...')
         distances = self.compute_distances(centroids)
+        self.norm_row_l2(distances.T)    # Distances matrix L2-normalization
 
         return result
 
@@ -182,7 +136,8 @@ class Kmeans:
         Computes a k x n matrix such that the entry at i, j contains the
         distance between the i-th centroid and the j-th document.
         """
-        return np.transpose(centroids).dot(self.A)
+        # return centroids.T.dot(self.A)
+        return 2 * (1 - centroids.T * self.A)
 
     def compute_assignment(self, distances):
         """
@@ -198,6 +153,59 @@ class Kmeans:
         average of all the documents assigned to it in the given assignment.
         """
         pass
+
+    @staticmethod
+    def norm_row_l2(matrix):
+        """ L2 normalize rows of a dense matrix.
+        >>> m = np.matrix([[1, 2], [2, 3]], dtype=float)
+        >>> Kmeans.norm_row_l2(m)
+        >>> m
+        matrix([[ 0.4472136 ,  0.89442719],
+                [ 0.5547002 ,  0.83205029]])
+        """
+        sq = np.multiply(matrix, matrix)
+        row_sums = np.array(sq.sum(axis=1))[:, 0]
+        row_sums = np.sqrt(row_sums)
+        matrix /= row_sums[:, None]
+
+    @staticmethod
+    def norm_sp_row_l2(matrix):
+        """ L2 normalize rows of a sparse csr_matrix.
+        >>> m = np.matrix([[0, 1, 2], [0, 2, 3]], dtype=float)
+        >>> m = csr_matrix(m)
+        >>> Kmeans.norm_sp_row_l2(m)
+        >>> m[0, 0]
+        0.0
+        >>> m[0, 1]
+        0.44721359549995793
+        >>> m[0, 2]
+        0.89442719099991586
+        >>> m[1, 0]
+        0.0
+        >>> m[1, 1]
+        0.55470019622522915
+        >>> m[1, 2]
+        0.83205029433784372
+        """
+        sq = matrix.multiply(matrix)
+        row_sums = np.array(sq.sum(axis=1))[:, 0]
+        row_sums = np.sqrt(row_sums)
+        row_indices, col_indices = matrix.nonzero()
+        matrix.data /= row_sums[row_indices]
+
+    @staticmethod
+    def norm_sp_row_l1(matrix):
+        """ L1 normalize rows of a dense matrix.
+        >>> m = np.matrix([[1, 2], [3, 3]], dtype=float)
+        >>> m = csr_matrix(m)
+        >>> Kmeans.norm_sp_row_l1(m)
+        >>> m.todense()
+        matrix([[ 0.33333333,  0.66666667],
+                [ 0.5       ,  0.5       ]])
+        """
+        row_sums = np.array(matrix.sum(axis=1))[:, 0]
+        row_indices, col_indices = matrix.nonzero()
+        matrix.data /= row_sums[row_indices]
 
 
 if __name__ == "__main__":
