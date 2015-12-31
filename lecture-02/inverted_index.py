@@ -1,16 +1,10 @@
-"""
-Copyright 2015 University of Freiburg
-Hannah Bast <bast@cs.uni-freiburg.de>
-Evgeny Anatskiy <evgeny.anatskiy@jupiter.uni-freiburg.de>
-Numair Mansur <numair.mansur@gmail.com>
-"""
+'''
+Exam Preparation for lecture # 2
+'''
 
 import re
 import sys
-from math import log
-from time import time
-import numpy
-import scipy.sparse
+from collections import Counter
 
 
 GREEN_CLR = '\033[32m'
@@ -18,299 +12,89 @@ YELLOW_CLR = '\033[33m'
 PURPLE_CLR = '\033[35m'
 END_CLR = '\033[0m'
 
-# BM25 parameters
-K = 0.75
-B = 0.0
-
-
-class EvaluateBenchmark:
-	""" Class for evaluating a given benchmark. """
-
-	def __init__(self, inv_lists):
-		"""
-		Creates an empty dictionary of queries and their relevant movies ids,
-		a list of pair with a movies id and its relevance according to the
-		benchmark file and total sums for P@3, P@R and AP.
-		"""
-
-		self.benchmark_ids = dict()
-		self.res_relevance = list()
-		self.ii = inv_lists
-		self.sum_pa3 = 0
-		self.sum_par = 0
-		self.sum_ap = 0
-
-	def precision_at_k(self, results_ids, relevant_ids, k):
-		"""
-		Computes the P@k for the given result list and the given set of
-		relevant docs.
-
-		(Note: with our approach results_ids and relevant_ids are not needed as
-		they were used before to generate the results_relevance list.)
-		"""
-		return len([x for x in self.res_relevance[:k] if x[1] == 1]) / k
-
-	def average_precision(self, results_ids, relevant_ids):
-		"""
-		Computes the AP (average precision) of the given result list and the
-		given set of relevant docs.
-		"""
-		sum_p = 0
-
-		r_list = [results_ids.index(x[0]) + 1
-				  for x in self.res_relevance if x[1] == 1]
-
-		# Taking into the consideration the note below on the Slide 22
-		# (Lecture 2): "for docs not in the result list take P@Ri = 0"
-		r_list_length = len(r_list)
-		r_list_length += len(relevant_ids) - r_list_length
-
-		for r in r_list:
-			sum_p += self.precision_at_k(None, None, r)
-
-		return sum_p / r_list_length
-
-	def evaluate_benchmark(self, file_name):
-		""" Evaluates the given benchmark. """
-
-		with open(file_name, 'r', encoding='utf-8') as file:
-			for line in file:
-				splitted_line = line.replace('\n', '').split('\t')
-				self.benchmark_ids[splitted_line[0]] = \
-					[int(x) for x in splitted_line[1].split(' ')]
-
-		print('Calculating...')
-		st = time()
-
-		for query, relevant_ids in self.benchmark_ids.items():
-			results_ids = [x[0] for x in self.ii.process_query(query)]
-
-			self.res_relevance = [[res_id, 1 if res_id in relevant_ids else 0]
-								  for res_id in results_ids]
-
-			self.sum_pa3 += self.precision_at_k(None, None, 3)
-			self.sum_par += self.precision_at_k(None, None, len(relevant_ids))
-			self.sum_ap += self.average_precision(results_ids, relevant_ids)
-
-		num = len(self.benchmark_ids)
-		print('\nMP@3: %s, MP@R: %s, MAP: %s' %
-			  (round(self.sum_pa3 / num, 2),
-			   round(self.sum_par / num, 2),
-			   round(self.sum_ap / num, 2)))
-		print('K = %s, B = %s' % (K, B))
-		print('\nCalculation time: %s s' % (round(time() - st, 2)))
-
-
 class InvertedIndex:
-	"""A simple inverted index as explained on the lecture."""
 
 	def __init__(self):
-		""" Creates an empty inverted index and additional dicts. """
-
+		"""
+			Create an empty inverted index.
+		"""
 		self.inverted_lists = dict()
 		self.records = dict()
-		self.record_lengths = dict()
-		self.num_terms = 0
-		self.num_docs = 0
-		self.terms = []
 
-	def read_from_file(self, file_name):
+
+	def read_from_file(self,file_name):
 		"""
-		Constructs the inverted index from the given file. The format is: one
-		record per line.
-
+		Construct InvertedIndex from given file_name. The format of the file 
+		is one record per line.
 		>>> ii = InvertedIndex()
 		>>> ii.read_from_file("example.txt")
-		>>> ii.terms
-		['internet', 'web', 'surfing', 'beach']
 		>>> sorted(ii.inverted_lists.items())
-		[('beach', {4: 1, 5: 1, 6: 1}), ('internet', {1: 1, 2: 1, 4: 1}), ('surfing', {1: 1, 2: 1, 3: 1, 4: 2, 5: 1, 6: 1}), ('web', {1: 1, 3: 1, 4: 1})]
+		[('docum', [1, 2, 3]), ('first', [1]), ('second', [2]), ('third', [3])]
 		"""
-
-		with open(file_name, 'r', encoding='utf-8') as file:
-			doc_id = 0
+		doc_id = 0
+		with open(file_name) as file:
 			for line in file:
 				doc_id += 1
-				words = re.split("\W+", line)
 				self.records[doc_id] = line.replace('\n', '')
-				self.record_lengths[doc_id] = len(words)
-				for term in words:
-					term = term.lower()
-					if any(term):
-						""" If a term is seen for first time, create an empty
-						inverted list for it. """
-						if term not in self.inverted_lists:
-							self.terms.append(term) # append if we see a term for the first time
-							self.inverted_lists[term] = dict()
+				for word in re.split("\W+", line):
+					word = word.lower()
+					if len(word) > 0:
+						""" Check if word seen for the first time
+						create an empty inverted list for it """
+						if not word in self.inverted_lists:
+							self.inverted_lists[word]=list()
+						self.inverted_lists[word].append(doc_id)
 
-						if doc_id in self.inverted_lists[term].keys():
-							self.inverted_lists[term][doc_id] += 1
-						else:
-							self.inverted_lists[term][doc_id] = 1
-			self.num_docs = doc_id
-			self.num_terms = len(self.inverted_lists)
-
-	def preprocessing_vsm(self, m):
-		'''
-		Build a sparse matrix A 
-		'''
-		nz_values = []
-		row_inds = []
-		col_inds = []
-		row = 0
-		m_frequent_terms = sorted(self.inverted_lists, key=lambda k: len(self.inverted_lists[k]), reverse=True)
-		m_frequent_terms = m_frequent_terms[0:m]
-		print("Sorted", m_frequent_terms)
-		for term in m_frequent_terms:
-
-			
-			N = len(self.record_lengths)
-			AVDL = sum(self.record_lengths.values()) / float(N)
-			for record_id, tf in self.inverted_lists[term].items():
-				df = len(self.inverted_lists[term])
-				DL = self.record_lengths[record_id]
-				self.inverted_lists[term][record_id] = self.bm25_score(tf, df, N, AVDL, DL)
-			
-			nz_values = nz_values + list(self.inverted_lists[term].values())
-			row_inds = row_inds + [row] * len(self.inverted_lists[term].values())
-			row += 1
-			col_inds = col_inds + [x-1 for x in list(self.inverted_lists[term].keys())] 
-		A = scipy.sparse.csr_matrix((nz_values, (row_inds, col_inds)))
-		return A
-
-	def process_query_vsm(self, query,m):
-		'''
-		Build the Query matrix from entered Query
-		'''
-		m_frequent_terms = sorted(self.inverted_lists, key=lambda k: len(self.inverted_lists[k]), reverse=True)
-		m_frequent_terms = m_frequent_terms[0:m]
-
-		Query_vector = numpy.zeros(m)
-		for i,term in enumerate(m_frequent_terms):
-			for query_word in re.split("\W+", query):
-				if term == query_word:
-					Query_vector[i] += 1
-		
-
-		return scipy.sparse.csr_matrix(Query_vector)
-
-
-
-	def build_td_matrix(self):
-		'''
-		Build the term-document matrix from the already built inverted index
-		TODO : Build sparse matrices . Also consider the m most frequent terms  - easy
-		'''
-		A = numpy.zeros((self.num_terms, self.num_docs))
-		for i, term in enumerate(self.terms):
-
-			N = len(self.record_lengths)
-			AVDL = sum(self.record_lengths.values()) / float(N)
-			for record_id, tf in self.inverted_lists[term].items():
-				df = len(self.inverted_lists[term])
-				DL = self.record_lengths[record_id]
-				self.inverted_lists[term][record_id] = self.bm25_score(tf, df, N, AVDL, DL)
-
-
-
-			for doc_id in self.inverted_lists[term]:
-				A[i, doc_id - 1] = self.inverted_lists[term][doc_id]
-		return A
-
-	def build_query_vector(self, query):
-		'''
-		Build the Query matrix from entered Query
-		'''
-		Query_vector = numpy.zeros(self.num_terms)
-		for i,term in enumerate(self.terms):
-			for query_word in re.split("\W+", query):
-				if term == query_word:
-					Query_vector[i] += 1
-		return Query_vector
-
-	def merge(self, l1, l2):
-		"""
-		Merges two given inverted lists
-
-		>>> ii = InvertedIndex()
-		>>> l1 = [[1, 1], [3, 2], [4, 1], [6, 1]]
-		>>> l2 = [[2, 1], [3, 1], [5, 1], [7, 2]]
-		>>> ii.merge(l1, l2)
-		[[1, 1], [2, 1], [3, 3], [4, 1], [5, 1], [6, 1], [7, 2]]
-		"""
+	def merge(self,l1,l2):
+		""" Given two given inverted list. Merge them in a sorted order. """
+		#l1 = [1,3,3,4,6]
+		#l2 = [2,3,5,7,7]
 		merged_list = list()
-		i, j = 0, 0
+
+		i,j = 0,0
 
 		while i < len(l1) and j < len(l2):
-			if l1[i][0] < l2[j][0]:
+			if l1[i] < l2[j]:
 				merged_list.append(l1[i])
 				i += 1
-			elif l1[i][0] == l2[j][0]:
-				merged_list.append([l1[i][0], l1[i][1] + l2[j][1]])
-				i += 1
-				j += 1
 			else:
 				merged_list.append(l2[j])
 				j += 1
-
 		if i < len(l1):
-			merged_list.extend(l1[i:])
+			merged_list = merged_list + l1[i:len(l1)]
 		if j < len(l2):
-			merged_list.extend(l2[j:])
+			merged_list = merged_list + l2[j:len(l2)]
 
 		return merged_list
 
-	def bm25_score(self, tf, df, N, AVDL, DL):
-		return tf * (K + 1) / (K * (1 - B + B * DL / AVDL) + tf) * \
-			log((N / df), 2)
+
+
+
 
 	def process_query(self, query):
-		"""
-		Computes the list of ids of all records containing at least one word
-		from the given query.
-
-		>>> ii = InvertedIndex()
-		>>> file_name = ii.read_from_file('example.txt')
-		>>> ii.process_query('web')
-		[[1, 1.0], [3, 1.0], [4, 1.0]]
-		"""
-		lists = list()
-		merged_list = list()
-
-		N = len(self.record_lengths)
-		AVDL = sum(self.record_lengths.values()) / float(N)
-
+		""" TODO: Process Query Method """
+		result_list = list()
 		for word in re.split("\W+", query):
 			word = word.lower()
-			if any(word):
-				if word in self.inverted_lists.keys():
-					for record_id, tf in self.inverted_lists[word].items():
-						df = len(self.inverted_lists[word])
-						DL = self.record_lengths[record_id]
-						self.inverted_lists[word][record_id] = \
-							self.bm25_score(tf, df, N, AVDL, DL)
+			if word in self.inverted_lists.keys():
+				result_list = self.merge(result_list,self.inverted_lists[word])
+		document_ids = list(set(result_list))
+		return Counter(result_list).most_common()
 
-					inv_list = [[x, self.inverted_lists[word][x]]
-								for x in self.inverted_lists[word]]
-					
-					lists.append(sorted(inv_list, key=lambda x: x[0]))
-		
-		for i in range(len(lists)):
-			merged_list = self.merge(merged_list, lists[i])
-		return sorted(merged_list, key=lambda x: x[1], reverse=True)
 
 	def print_output(self, hits, query):
 		for hit in hits:
-			record = self.records[hit[0]].split('\t')
-			title = record[0]
+			record_title = self.records[hit[0]].split('\t')[0]
 
-			print(GREEN_CLR + title + END_CLR)
+			print('%s (# of keywords occurrences: %s)' %
+				  (GREEN_CLR + record_title + END_CLR, hit[1]))
 
 			keywords = [word.lower() for word in re.split("\W+", query)]
-			description = record[0] if len(record) == 1 \
-				else record[1]
+			description = self.records[hit[0]].split('\t')
+			description = description[0] if len(description) == 1 \
+				else description[1]
 
-			# Keywords highlighting
+			# Highlighting keywords
 			words = description.split(' ')
 			for word in words:
 				truncated_word = re.sub(r'[^\w]', '', word)
@@ -320,62 +104,30 @@ class InvertedIndex:
 						word.replace(truncated_word, wrapped_word)
 			print(' '.join(words), '\n')
 
+
+
 	def main(self):
-		""" The main method. """
-		msg = 'Usage: \n\tpython3 inverted_index.py <file>' + \
-			  '\n\tpython3 inverted_index.py <file> --benchmark ' + \
-			  '<benchmark_file>'
-
-		if len(sys.argv) < 2 or \
-				(len(sys.argv) == 3 and sys.argv[2] == '--benchmark') or \
-				(len(sys.argv) == 4 and sys.argv[2] != '--benchmark'):
-			print(msg)
+		"""Main Method """
+		if len(sys.argv) != 2:
+			print("Usage: python 3 inverted_index.py <file>")
 			sys.exit()
+
 		file_name = sys.argv[1]
-		print('Loading...\n')
 		self.read_from_file(file_name)
-		A = ii.build_td_matrix() 
-		
-		########################################
-		sparse_A = self.preprocessing_vsm(4) 
-		print("Sparse Matrix: ")
-		print(sparse_A)
-		########################################
 
-		numpy.set_printoptions(formatter={"float":lambda x : "%5.1f" % x})
+		while True:
+			message = "> Enter the Query ('exit' for quitting): "
+			query = input(message)
+			if query == "exit":
+				break
+			hits = self.process_query(query)
+			if any(hits):
+				self.print_output(hits[:3],query)
+			else:
+				print("no hits")
 
+		print("")
 
-		if len(sys.argv) > 3 and sys.argv[2] == '--benchmark':
-			eb = EvaluateBenchmark(self)
-			eb.evaluate_benchmark(sys.argv[3])
-		else:
-			while True:
-				msg = PURPLE_CLR + \
-					'> Enter the query (type "exit" for quitting): ' + END_CLR
-				query = input(msg)
-				if query == 'exit':
-					break
-
-				print('')
-				hits = ii.process_query(query)
-				# #############################
-				Q = ii.build_query_vector(query) # Query Vector
-				sparse_Q = ii.process_query_vsm(query,4)
-				print("SPARSE Query Vector")
-				print(sparse_Q)
-				# sparse_Q = scipy.sparse.csr_matrix([1, 1, 0, 0])
-				scores = Q.dot(A) # Scores Matrix 
-				sparse_scores = sparse_Q.dot(sparse_A)
-				print("Sparse Scores") 
-				print(sparse_scores)
-				print()
-				print("!! RESULTS STILL BEING DISPLAYED BY THE OLD CALCULATIONS !!")
-				print()
-				# #############################
-				if any(hits):
-					self.print_output(hits[:3], query)
-				else:
-					print('No hits')
 
 
 if __name__ == "__main__":
