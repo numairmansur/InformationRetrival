@@ -5,12 +5,17 @@ Exam Preparation for lecture # 2
 import re
 import sys
 from collections import Counter
+from math import log
 
 
 GREEN_CLR = '\033[32m'
 YELLOW_CLR = '\033[33m'
 PURPLE_CLR = '\033[35m'
 END_CLR = '\033[0m'
+
+
+k = 0.75
+b = 0.0
 
 class InvertedIndex:
 
@@ -20,6 +25,11 @@ class InvertedIndex:
 		"""
 		self.inverted_lists = dict()
 		self.records = dict()
+		self.term_frequency = dict()
+		self.DL = dict()
+		self.doc_id = 0
+		self.AVDL = 0
+
 
 
 	def read_from_file(self,file_name):
@@ -31,35 +41,64 @@ class InvertedIndex:
 		>>> sorted(ii.inverted_lists.items())
 		[('docum', [1, 2, 3]), ('first', [1]), ('second', [2]), ('third', [3])]
 		"""
-		doc_id = 0
+		
 		with open(file_name) as file:
 			for line in file:
-				doc_id += 1
-				self.records[doc_id] = line.replace('\n', '')
-				for word in re.split("\W+", line):
+				self.doc_id += 1
+				self.records[self.doc_id] = line.replace('\n', '')
+				document_words =  re.split("\W+", line)
+				self.DL[self.doc_id] = len(document_words)
+				for word in document_words:
 					word = word.lower()
 					if len(word) > 0:
 						""" Check if word seen for the first time
 						create an empty inverted list for it """
+						
 						if not word in self.inverted_lists:
 							self.inverted_lists[word]=list()
-						self.inverted_lists[word].append(doc_id)
+							self.term_frequency[word]=dict()
+						
+						self.inverted_lists[word].append(self.doc_id)
+
+
+						if self.doc_id in self.term_frequency[word].keys():
+							self.term_frequency[word][self.doc_id] += 1
+						else:
+							self.term_frequency[word][self.doc_id] = 1
+						
+						
+
+
+						
+
+						# Don't append multiple document ids in the inverted index lists
+						#if len(self.inverted_lists[word]) == 0 or \
+						#	self.inverted_lists[word][-1] != doc_id:
+						#	self.inverted_lists[word].append(doc_id)
+
+
+
 
 	def merge(self,l1,l2):
 		""" Given two given inverted list. Merge them in a sorted order. """
-		#l1 = [1,3,3,4,6]
-		#l2 = [2,3,5,7,7]
+		#l1 = [[1, 1], [3, 2], [4, 1], [6, 1]]
+		#l2 = [[2, 1], [3, 1], [5, 1], [7, 2]]
+		
 		merged_list = list()
-
 		i,j = 0,0
 
 		while i < len(l1) and j < len(l2):
-			if l1[i] < l2[j]:
+			if l1[i][0] < l2[j][0]:
 				merged_list.append(l1[i])
 				i += 1
+			elif l1[i][0] == l2[j][0]:
+				merged_list.append([l1[i][0], l1[i][1] + l2[j][1]])
+				i+=1
+				j+=1
 			else:
 				merged_list.append(l2[j])
 				j += 1
+
 		if i < len(l1):
 			merged_list = merged_list + l1[i:len(l1)]
 		if j < len(l2):
@@ -68,18 +107,26 @@ class InvertedIndex:
 		return merged_list
 
 
-
+	def bm_25(self, tf, df, N, AVDL, DL):
+		return tf * (k + 1) / (k * (1 - b + b * DL / AVDL) + tf) * log((N / df), 2)  
 
 
 	def process_query(self, query):
 		""" TODO: Process Query Method """
 		result_list = list()
+		bm_25_scores = list()
 		for word in re.split("\W+", query):
 			word = word.lower()
 			if word in self.inverted_lists.keys():
-				result_list = self.merge(result_list,self.inverted_lists[word])
-		document_ids = list(set(result_list))
-		return Counter(result_list).most_common()
+				for document_id in list(self.term_frequency[word].keys()):
+					tf = self.term_frequency[word][document_id]
+					df = len(self.inverted_lists[word])
+					N = self.doc_id
+					bm25 = self.bm_25(tf,df, N, self.AVDL, self.DL[document_id])
+					bm_25_scores.append([document_id, bm25])
+				result_list = self.merge(result_list,bm_25_scores)
+		
+		return sorted(result_list, key=lambda x: x[1], reverse=True)
 
 
 	def print_output(self, hits, query):
@@ -114,6 +161,12 @@ class InvertedIndex:
 
 		file_name = sys.argv[1]
 		self.read_from_file(file_name)
+		self.AVDL = sum(self.DL.values()) / self.doc_id
+		#print(self.inverted_lists)
+		#print(list(self.term_frequency['docum'].keys()))
+		#print(self.DL)
+		#print(self.doc_id)
+		#print(self.AVDL)
 
 		while True:
 			message = "> Enter the Query ('exit' for quitting): "
@@ -133,3 +186,4 @@ class InvertedIndex:
 if __name__ == "__main__":
 	ii = InvertedIndex()
 	ii.main()
+ 
