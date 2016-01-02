@@ -15,8 +15,8 @@ public class ListIntersection {
   /**
    * Read posting list from file.
    */
-  PostingList readPostingList(String fileName,
-      int numRepeats, int offset) throws IOException {
+  PostingList readPostingList(String fileName, int numRepeats, int offset) throws IOException
+  {
     FileReader fileReader = new FileReader(fileName);
     BufferedReader bufferedReader = new BufferedReader(fileReader);
     ArrayList<Integer> ids = new ArrayList<Integer>();
@@ -34,7 +34,8 @@ public class ListIntersection {
   /**
    * Simple performance test: compute the sum over all ids of a posting list.
    */
-  void performanceTest(PostingList list, String name) {
+  void performanceTest(PostingList list, String name)
+  {
     // for (int run = 0; run < 3; run++) {
     //   System.out.print("Computing checksum for \"" + name
     //       + "\" with ArrayList ... ");
@@ -70,37 +71,30 @@ public class ListIntersection {
   /**
    * Simple linear-time intersect.
    */
-  PostingList intersect(PostingList list1, PostingList list2) {
+  PostingList intersect(PostingList list1, PostingList list2)
+  {
     int n1 = list1.ids.length;
     int n2 = list2.ids.length;
-    int i = 0;
+    int i =0;
     int j = 0;
-    ArrayList<Integer> ids = new ArrayList<Integer>();
-    ArrayList<Integer> scores = new ArrayList<Integer>();
-    while (i < n1 && j < n2) {
-      while (i < n1 && list1.ids[i] < list2.ids[j]) { i++; }
-      if (i == n1) { break; }
+    ArrayList<Integer> ids = new ArrayList<Integer> ();
+    ArrayList<Integer> scores = new ArrayList<Integer> ();
+    while(i < n1 && j < n2)
+    {
+      while (i < n1 && list1.ids[i] < list2.ids[j]) { i++;}
+      if(i==n1) { break; }
+
       while (j < n2 && list2.ids[j] < list1.ids[i]) { j++; }
-      if (j == n2) { break; }
-      if (list1.ids[i] == list2.ids[j]) {
+      if( j==n2) {break;}
+
+      if(list1.ids[i] == list2.ids[j])
+      {
         ids.add(list1.ids[i]);
-        scores.add(list1.scores[i] + list2.scores[j]);
+        scores.add(list1.scores[i] + list2.scores[j] );
         i++;
         j++;
       }
     }
-    // while (i < n1 && j < n2) {
-    //   if (list1.ids[i] < list2.ids[j]) { i++; }
-    //   if (i == n1) { break; }
-    //   if (list2.ids[j] < list1.ids[i]) { j++; }
-    //   if (j == n2) { break; }
-    //   if (list1.ids[i] == list2.ids[j]) {
-    //     ids.add(list1.ids[i]);
-    //     scores.add(list1.scores[i] + list2.scores[j]);
-    //     i++;
-    //     j++;
-    //   }
-    // }
     return new PostingList(ids, scores, 1, 0);
   }
 }

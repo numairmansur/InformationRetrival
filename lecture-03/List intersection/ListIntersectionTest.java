@@ -24,7 +24,8 @@ public class ListIntersectionTest {
   }
 
   @Test
-  public void intersect() throws IOException {
+  public void intersect() throws IOException
+  {
     ListIntersection li = new ListIntersection();
     PostingList list1 = li.readPostingList("example1.txt", 2, 50);
     PostingList list2 = li.readPostingList("example2.txt", 2, 50);

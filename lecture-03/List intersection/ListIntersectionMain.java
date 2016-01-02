@@ -13,18 +13,15 @@ public class ListIntersectionMain {
     String listNames[] = { "film", "comedy" };
     int m = listNames.length;
     ListIntersection li = new ListIntersection();
-
     // Read lists.
-    PostingList lists[] = new PostingList[m];
+    PostingList lists[] = new PostingList[m]; // Declaring an array of type PostingList
     System.out.println();
     for (int i = 0; i < m; i++) {
       System.out.print("Reading list \"" + listNames[i] + "\" ... ");
       System.out.flush();
-      System.out.println("Hello world 1");
       String fileName = "postinglists/" + listNames[i] + ".txt";
       lists[i] = li.readPostingList(fileName, 100, 200 * 1000);
-      System.out.println("Hello world2");
-      System.out.println("done, size = " +  lists[i].ids.length);
+      System.out.println("DONE,   (size = " +  lists[i].ids.length +")");
     }
     System.out.println();
    

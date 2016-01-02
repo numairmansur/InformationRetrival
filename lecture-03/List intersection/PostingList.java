@@ -14,7 +14,7 @@ public class PostingList {
    * offset for the repetitions.
    */
   public PostingList(ArrayList<Integer> ids, ArrayList<Integer> scores,
-     int numRepeats, int offset) {
+                     int numRepeats, int offset) {
     int n = ids.size();
     this.ids = new int[n * numRepeats];
     this.scores = new int[n * numRepeats];
