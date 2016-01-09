@@ -7,6 +7,7 @@ import sys
 from collections import Counter
 from math import log
 import numpy
+import numpy.linalg as linalg
 
 
 GREEN_CLR = '\033[32m'
@@ -162,20 +163,45 @@ class InvertedIndex:
 
     def main(self):
         """Main Method """
-        if len(sys.argv) != 2:
-            print("Usage: python 3 inverted_index.py <file>")
+        if len(sys.argv) != 3:
+            print("Usage: python 3 inverted_index.py <file> <K>")
             sys.exit()
 
         file_name = sys.argv[1]
+        k = int(sys.argv[2]) # the rank argument
         self.read_from_file(file_name)
+        
+        ##############################################################################
         A = self.build_term_document_matrix() #Building the Term Document Matrix
-        numpy.set_printoptions(formatter = {"float":lambda x : "%2.0f" %x})
+        numpy.set_printoptions(formatter = {"float":lambda x : "%3.1f" %x})
+        print("Original Term Document Matrix")
         print(A)
         q= numpy.array([0,1,1,0]) # Query Array. To be done automatically
+        print("Query")
         print(q)
         print()
+        print("SCORES")
         scores = q.dot(A)
         print(scores)
+        print()
+        print("Rank K approximation")
+        print(k)
+        U,S,V = linalg.svd(A)
+        #print(U)
+        S = numpy.diag(S)
+        #print(S)
+        #print(V)
+        Uk = U[:, 0:k]
+        Sk = S[0:k, 0:k]
+        Vk = V[0:k, :]
+        Ak = Uk.dot(Sk).dot(Vk)
+        print(Ak)
+        scores = q.dot(Ak)
+        print("New scores")
+        print(scores)
+        ##############################################################################
+
+
         self.AVDL = sum(self.DL.values()) / self.doc_id
         # print(self.inverted_lists)
         # print(list(self.term_frequency['docum'].keys()))
