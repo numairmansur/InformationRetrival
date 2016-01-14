@@ -93,3 +93,18 @@ class NaiveBayes(object):
     def evaluate(self, X, y):
         """Predict the labels of X and print evaluation statistics.
         """
+
+
+
+if __name__ == "__main__":
+    print("Generating vocabulary . .")
+    word_vocab, class_vocab = generate_vocab("example.txt")
+    print("DONE")
+    print(sorted(word_vocab.items(), key=operator.itemgetter(1)))
+    print(class_vocab)
+    print()
+    print("Readign labeled data . .")
+    x,y = read_labeled_data("example.txt", class_vocab, word_vocab)
+    print("Done")
+    print(x.todense())
+    print(y)
