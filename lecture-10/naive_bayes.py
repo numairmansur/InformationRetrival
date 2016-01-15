@@ -7,6 +7,8 @@ Elmar Haussmann <haussmann@cs.uni-freiburg.de>
 import re
 import numpy as np
 from scipy.sparse import csr_matrix
+import operator
+from collections import Counter
 
 
 def generate_vocab(filename):
@@ -79,11 +81,65 @@ def read_labeled_data(filename, class_vocab, word_vocab):
     return X, y
 
 
-class NaiveBayes(object):
+class NaiveBayes:
 
     def train(self, X, y):
         """Train on the sparse document-term matrix X and associated labels y.
         """
+        print("Training . . .")
+        print()
+        Tc = dict() # Number of documnets in a class
+        Tc = Counter(y) # counts how many documents belong to each class
+        # print(Counter(y).keys())
+        # print(Counter(y).values())
+        total_number_of_documents = len(y)
+        Pc = dict() # The probablity of a class 
+        for classs in Tc.keys():
+            Pc[classs] = Tc[classs]/total_number_of_documents
+        print(Pc)
+        #print(list(set(y)))
+
+        # Make a class-term matrix
+        row, col , value = [], [], []
+        
+        for row_val in sorted(set(y)):
+            y_index = 0
+            for val in y:
+                if(row_val == val):
+                    row.append(row_val)
+                    col.append(y_index)
+                    value.append(1)
+                y_index+=1
+        #print(row)
+        #print(col)
+        #print(value)
+        class_term_matrix = csr_matrix((value, (row,col)), shape=(len(sorted(set(y))), total_number_of_documents))
+        #print(class_term_matrix.todense())
+
+        # Count Matrix
+        count_matrix = class_term_matrix * X
+        print()
+        print(count_matrix.todense())
+        print("******")
+        print(count_matrix[0,:].data)
+        print(count_matrix.sum(axis=1))
+        a = np.divide(count_matrix[0,:].data, count_matrix.sum(axis=1)[0,:])
+        print(a)
+        print("*****")
+        row_indices, col_indices = count_matrix.nonzero()
+        print(count_matrix.sum(axis=1)[row_indices,0])
+        count_matrix[row_indices,col_indices] /= count_matrix.sum(axis=1)[row_indices,0]
+        print(count_matrix.todense())
+
+        #Make a probability Dictionary
+
+
+
+
+        print("DONE !")
+        print(row_indices)
+        print(col_indices)
+        print()
 
     def predict(self, X):
         """Predicts a label for each example in the document-term matrix.
@@ -108,3 +164,7 @@ if __name__ == "__main__":
     print("Done")
     print(x.todense())
     print(y)
+    print()
+    # Passing the document-term matrix and other things to the class object
+    nb = NaiveBayes()
+    nb.train(x,y)

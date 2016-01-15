@@ -1,0 +1,8 @@
+A	numair numair numair numair mansur
+B	mansur mansur mansur mansur numair
+B	mansur mansur mansur numair numair
+B	mansur mansur mansur mansur mansur
+A	numair numair numair mansur
+A	numair numair numair mansur
+A	numair numair numair numair numair mansur
+C	numair hassaan hassaan hassaan
